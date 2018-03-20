@@ -99,4 +99,9 @@ void destroy(KVS* store){
     }
     free(store);
 }
+
+float loadfactor (KVS *store){
+    
+    return 1.0;
+}
 /* ====================== */
