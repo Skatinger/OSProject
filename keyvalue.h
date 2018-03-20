@@ -1,28 +1,24 @@
 #ifndef HEADER_FILE
 #define HEADER_FILE
 
-//DEFS
+#define ALPHABET_SIZE 26
 
-//VARS
-struct KVS {
-    
-    
-    
-} KVS;
+//KVS INTERFACE FUNCTIONS
 
-
-//FUNCTIONS
+typedef struct KVS KVS;
 
 
 KVS kvs_create();
 
-void kvs_destroy(KVS* store);
+void destroy(KVS* store);
 
-int kvs_put_value(KVS* store, char* value);
+void set(KVS* store, char* value, char* key);
 
-char* kvs_get_value(KVS* store, char* key);
+char* get(KVS* store, char* key);
 
-char* kvs_delete(KVS* store, char* key);
+char* del(KVS* store, char* key);
 
-char* kvs_replace(KVS* store, char* key);
+void replace(KVS* store, char* key);
+
+float loadfactor (KVS *store);
 #endif
