@@ -8,11 +8,11 @@ client: client.o
 server: server.o server.h
 	gcc -o server server.o
 
-kvs: kvs.o kvs.h
-	gcc -o kvs kvs.o kvs.h
+kvs: kvs.o keyvalue.h
+	gcc -o kvs kvs.o keyvalue.h
 
-kvs_test: kvs_test.o kvs.h
-	gcc -o kvs_test kvs.o kvs.h
+kvs_test: kvs_test.o keyvalue.h
+	gcc -o kvs_test kvs.o keyvalue.h
 
 
 #object files

@@ -22,7 +22,7 @@ void test(){
     destroy(t);
 }
 
-int main (int argc, char *argv[]){
+int main (){
     test();
     return 0;
 }
