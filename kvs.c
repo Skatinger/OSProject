@@ -40,8 +40,8 @@ int reHash (KVS *t, int index) {
 
 /* == KVS-access-methods == */
 //TODO: FIX (gets caught in loop)
-void set(KVS *t, char* value, char* key) {
-    if(t->load == t->size) return;//table is full
+int set(KVS *t, char* key, char* value) {
+    if(t->load == t->size) return ERROR;//table is full
     int index = hashFunc(t, value);
     while(t->table[index].key != NULL){
         printf("fuck");
@@ -49,6 +49,7 @@ void set(KVS *t, char* value, char* key) {
     }
     t->table[index].key = key;
     t->table[index].value = value;
+    return SUCCESS;
 }
 
 char* get(KVS *t, char *key) {
@@ -70,8 +71,10 @@ char* del(KVS *t, char *key) {
     return res;
 }
 
-void replace(KVS* s, char* key){
+int replace(KVS* s, char* key, char* value){
     //TODO
+    
+    return SUCCESS;
     
 }
 /* ====================== */
