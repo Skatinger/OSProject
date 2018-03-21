@@ -3,6 +3,14 @@
 
 
 
+//functions
+
+/**
+ * scans for the input of a user
+ */
+void user_input();
+
+
 
 #endif
 

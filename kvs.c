@@ -17,13 +17,13 @@ typedef struct KVS {
 } KVS;
 /* ==================== */
 
-
 /* ====== hashing ====== */
 int hashFunc (KVS *t, char *key) {
     int h;
     for (h = 0; *key != '\0'; key++) {
         h = (ALPHABET_SIZE * h + *key) % t->size;
     }
+    printf("hashvalue of %s: %d\n", key, h);
     return h;
 }
 
@@ -37,14 +37,13 @@ int reHash (KVS *t, int index) {
 }
 /* ====================== */
 
-
 /* == KVS-access-methods == */
-//TODO: FIX (gets caught in loop)
 int set(KVS *t, char* key, char* value) {
     if(t->load == t->size) return ERROR;//table is full
-    int index = hashFunc(t, value);
+    int index = hashFunc(t, key);
+    //TODO: FIX (gets caught in loop)
+    //printf("index: %d has value %s\n", index, t->table[index].key);
     while(t->table[index].key != NULL){
-        printf("fuck");
         index += reHash(t, index);
     }
     t->table[index].key = key;
@@ -57,9 +56,9 @@ char* get(KVS *t, char *key) {
     while(t->table[index].key != NULL){
         index += reHash(t, index);
     }
-    return t->table[index].value;
+    return t->table[index].key;
 }
-
+//TODO throws segFault
 char* del(KVS *t, char *key) {
     int index = hashFunc(t, key);
     while(!strcmp(t->table[index].key, key)){
@@ -79,11 +78,11 @@ int replace(KVS* s, char* key, char* value){
 }
 /* ====================== */
 
-
 /* ==== KVS-Management === */
 KVS* create(int size) {
     KVS *newStore = malloc (sizeof (KVS));
     newStore->size = size;
+    newStore->load = 0;
     newStore->table = malloc (size * sizeof (keyValuePair));
     return newStore;
 }
@@ -101,7 +100,13 @@ void destroy(KVS* store){
 }
 
 float loadfactor (KVS *store){
-    
-    return 1.0;
+    return store->load/store->size;
 }
 /* ====================== */
+
+/* ==== ERROR HANDLING === */
+
+
+
+
+
