@@ -2,8 +2,30 @@
 #define HEADER_FILE
 
 #define ALPHABET_SIZE 26
-#define ERROR 0
-#define SUCCESS 1
+//#define ERROR 0
+//#define SUCCESS 1
+#define SUCCESS 0
+#define STORAGE_FULL_ERROR 1
+#define KEY_NOT_FOUND_ERROR 2
+#define STORAGE_EMPTY_ERROR "Deleting failed -- storage is empty\n"
+#define KEY_NOT_FOUND_ERRORmsg "The desired key wasn't found\n"
+
+#define BIGPRIME_1 1300391
+#define BIGPRIME_2 224443
+
+/* ==== structs =====*/
+typedef struct keyValuePair {
+    char *key;
+    char *value;
+    struct keyValuePair *next;
+} keyValuePair;
+
+typedef struct KVS {
+    int size;
+    int load;
+    keyValuePair *table;
+} KVS;
+/* ==================== */
 
 //KVS INTERFACE FUNCTIONS
 

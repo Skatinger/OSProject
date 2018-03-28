@@ -3,80 +3,120 @@
 #include <string.h>
 #include "keyvalue.h"
 
-/* ==== structs =====*/
-typedef struct keyValuePair {
-    char *key;
-    char *value;
-    struct keyValuePair *next;
-} keyValuePair;
 
-typedef struct KVS {
-    int size;
-    int load;
-    struct keyValuePair *table;
-} KVS;
-/* ==================== */
 
 /* ====== hashing ====== */
 int hashFunc (KVS *t, char *key) {
     int h;
+    char* tmp = key;
     for (h = 0; *key != '\0'; key++) {
         h = (ALPHABET_SIZE * h + *key) % t->size;
     }
-    printf("hashvalue of %s: %d\n", key, h);
+    printf("hashvalue of %s: %d\n", tmp, h);
     return h;
 }
 
 int reHash (KVS *t, int index) {
-    int ret;
-    int val = index;
-    while (val > 0) {
-        ret *= val % 10;
+
+    long int ret = index + 2;
+    while (ret < BIGPRIME_1) {
+        ret *= ret;
     }
-    return ret % t->size;
+    ret = ret % BIGPRIME_1;
+    while (ret < BIGPRIME_2) {
+        ret *= 7;
+    }
+    ret = ret % BIGPRIME_2;
+    printf("reHashValue of index %i is %li\n", index, ret);
+    return ret;
+    //return 1;
 }
 /* ====================== */
 
 /* == KVS-access-methods == */
 int set(KVS *t, char* key, char* value) {
-    if(t->load == t->size) return ERROR;//table is full
+    if(t->load == t->size) return STORAGE_FULL_ERROR;//table is full
     int index = hashFunc(t, key);
     //TODO: FIX (gets caught in loop)
     //printf("index: %d has value %s\n", index, t->table[index].key);
+    
     while(t->table[index].key != NULL){
         index += reHash(t, index);
+        index = index % t->size;
     }
     t->table[index].key = key;
     t->table[index].value = value;
+    printf("Set key: %s, and value: %s\n", t->table[index].key, t->table[index].value);
+    t->load++;
     return SUCCESS;
 }
 
 char* get(KVS *t, char *key) {
     int index = hashFunc(t, key);
-    while(t->table[index].key != NULL){
+    
+    // store first index to detect cycles
+    int tmp = index;
+    
+    while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
         index += reHash(t, index);
+        index = index % t->size;
+        if (index == tmp) {
+            // back at beginning, stop
+            return KEY_NOT_FOUND_ERRORmsg;
+        }
     }
-    return t->table[index].key;
+    return t->table[index].key!=NULL ? t->table[index].value : KEY_NOT_FOUND_ERRORmsg;
 }
 //TODO throws segFault
 char* del(KVS *t, char *key) {
+    if (t->load == 0) return STORAGE_EMPTY_ERROR;
     int index = hashFunc(t, key);
-    while(!strcmp(t->table[index].key, key)){
+    int tmp = index;
+    while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
         index += reHash(t, index);
+        index = index % t->size;
+        if (index == tmp) {
+            return KEY_NOT_FOUND_ERRORmsg;
+        }
     }
-    char* res = t->table[index].value;
-    t->table[index].value = 0;
+    char* res = t->table[index].key!=NULL ? t->table[index].value : KEY_NOT_FOUND_ERRORmsg;
+    t->table[index].value = NULL;
     t->table[index].key = NULL;
+    t->load--;
     return res;
 }
 
-int replace(KVS* s, char* key, char* value){
+int replace(KVS* t, char* key, char* value){
     //TODO
+    int index = hashFunc(t, key);
+    int tmp = index;
     
-    return SUCCESS;
+    while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
+        index += reHash(t, index);
+        index = index % t->size;
+        if (index == tmp) {
+            return KEY_NOT_FOUND_ERROR;
+        }
+    }
+    if (t->table[index].key != NULL) {
+        t->table[index].value = value;
+        return SUCCESS;
+    } else {
+        return KEY_NOT_FOUND_ERROR;
+    }
+    
     
 }
 /* ====================== */
+
+/* ==== KV Pair methods == */
+keyValuePair initKVP() {
+    keyValuePair *kvp = malloc(sizeof(keyValuePair));
+    kvp->key = NULL;
+    kvp->value = NULL;
+    kvp->next = NULL;
+    return *kvp;
+}
 
 /* ==== KVS-Management === */
 KVS* create(int size) {
@@ -84,6 +124,9 @@ KVS* create(int size) {
     newStore->size = size;
     newStore->load = 0;
     newStore->table = malloc (size * sizeof (keyValuePair));
+    for (int i = 0; i < size; i++) {
+        newStore->table[i] = initKVP();
+    }
     return newStore;
 }
 //TODO: this is horseradish
@@ -100,7 +143,7 @@ void destroy(KVS* store){
 }
 
 float loadfactor (KVS *store){
-    return store->load/store->size;
+    return (float) store->load/ (float) store->size;
 }
 /* ====================== */
 

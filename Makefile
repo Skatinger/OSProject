@@ -12,7 +12,7 @@ kvs: kvs.o keyvalue.h
 	gcc -o kvs kvs.o keyvalue.h
 
 kvs_test: kvs_test.o keyvalue.h kvs.o
-	gcc -o kvs_test kvs.o keyvalue.h kvs_test.o
+	gcc -o kvs_test kvs.o kvs_test.o
 
 
 #object files

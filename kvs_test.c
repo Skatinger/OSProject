@@ -22,8 +22,10 @@ void test(){
     printf("del seven: %s\n", del(t, "seven"));
     printf("get three: %s\n", get(t, "three"));
     replace(t, "three", "nine");
-    printf("replace three with nine: three -> %s\n", get(t, "nine"));
+    printf("replace three with nine: three -> %s\n", get(t, "three"));
     printf("loadfactor: %f\n", loadfactor(t));
+    printf("What happens when a nonexistant key is searched?\n");
+    printf("Get key whatever: %s", get(t, "whatever"));
     destroy(t);
 }
 
