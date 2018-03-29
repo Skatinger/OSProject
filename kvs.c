@@ -18,18 +18,27 @@ int hashFunc (KVS *t, char *key) {
 
 int reHash (KVS *t, int index) {
 
-    long int ret = index + 2;
-    while (ret < BIGPRIME_1) {
-        ret *= ret;
+//    long int ret = index + 2;
+//    while (ret < BIGPRIME_1) {
+//        ret *= ret;
+//    }
+//    ret = ret % BIGPRIME_1;
+//    while (ret < BIGPRIME_2) {
+//        ret *= 7;
+//    }
+//    ret = ret % BIGPRIME_2;
+//    printf("reHashValue of index %i is %li\n", index, ret);
+//
+//    return 1 + ret;
+//    //return 1;
+    
+    int ret = 1;
+    int val = index;
+    while (val > 0) {
+        ret *= val % 10;
+        val--;
     }
-    ret = ret % BIGPRIME_1;
-    while (ret < BIGPRIME_2) {
-        ret *= 7;
-    }
-    ret = ret % BIGPRIME_2;
-    printf("reHashValue of index %i is %li\n", index, ret);
-    return ret;
-    //return 1;
+    return ret + 1;
 }
 /* ====================== */
 
