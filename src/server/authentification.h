@@ -6,7 +6,14 @@
 #define TRUE  1
 
 // ERRORS
-#define ERROR_USERNAME_TOO_LONG 1;
+#define ERROR_USERNAME_TOO_LONG 1
+
+#define MAXUSERS 1000
+#define SALT_LENGTH 50
+#define ALPHABET_SIZE 26
+
+#include <stdint.h>
+#include <pthread.h>
 
 // TODO: think about overall structure. Maybe a struct holding all the user info?
 // That way, you could define a max amount of users and its easy to give a new user
@@ -24,21 +31,43 @@
 // int rights, that determines the rights -- if we settle for just normal and
 // admins, that's also possible.
 
+// TODO: better interface for db -- use binary tree or hashTable or sth.
+
 /**
  * Structure with all necessary info for a user.
  * @member username the username string with max 30 chars
  * @member passwordHash the SHA-xxx hashvalue of their passwords
  * @member salt the corresponding salt
- * @member isAdmin boolean indicating whether this user has admin rights
+ * @member RIGHTS indicating whether this user has admin rights
  */
 typedef struct {
-  int id,                 // unique id given by the system
-  char username[30],
-  int passwordHash,
-  int salt,
-  int rights,             // 0 == adminRights, rest TBD
+  int id;                 // unique id given by the system
+  char* username;
+  uint8_t* passwordHash;
+  char* salt;
+  int rights;             // 0 == adminRights, rest TBD
 } user_t;
 
+
+typedef struct {
+  int count;
+  user_t* table;
+} user_db_t;
+
+/**
+ * Integer that counts the total number of all users, used for giving ids.
+ * @return [description]
+ */
+extern int global_count;
+extern pthread_mutex_t* counterLock;
+
+void initUserHandler();
+
+/**
+ * Initialises the user database.
+ * @return pointer to the new "db".
+ */
+user_db_t* initUserDB();
 /**
  * Returns a pointer to a new empty user.
  * @return pointer to a user
@@ -60,7 +89,7 @@ user_t* newUser(char* username, char* password, int rights);
  * @return    0 if successful,
  *            1 if error
  */
-int addUser(user_t* user);
+int addUser(user_db_t* db, user_t* user);
 
 /**
  * Find a user based on their unique id in the database.
@@ -71,10 +100,11 @@ user_t* getUserById(int id);
 
 /**
  * Get user based on their username.
+ * @param the db to search in
  * @param  username of the desired user
  * @return          a pointer to the user info struct
  */
-user_t* getUserByName(char* username);
+user_t* getUserByName(user_db_t* db, char* username);
 
 /**
  * Checks username and password with the database to determine acces rights.
@@ -83,7 +113,7 @@ user_t* getUserByName(char* username);
  * @param  password string with the password to be checked
  * @return          FALSE if credentials are flase, TRUE if they are correct.
  */
-int checkCredentials(char* username, char* password);
+int checkCredentials(user_db_t* db, char* username, char* password);
 
 /**
  * Determines if the user has access // what kind of access
@@ -92,6 +122,7 @@ int checkCredentials(char* username, char* password);
  */
 int hasAccess(user_t* user);
 
+void printUser(user_t* user);
 
-
+uint8_t* createHash(char* password, char* salt);
 #endif

@@ -44,7 +44,7 @@
 	#gcc -o $@ $^
 
 
-all: build/server build/client  build/kvs_test #build/kvs
+all: build/server build/client  build/kvs_test build/auth_test #build/kvs
 
 build/client: build/obj/client.o
 	gcc -o build/client build/obj/client.o
@@ -58,7 +58,8 @@ build/server: build/obj/server.o src/server/server.h
 build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o
 	gcc -o build/kvs_test build/obj/kvs.o build/obj/kvs_test.o
 
-
+build/auth_test: src/server/authentification.o build/obj/auth_test.o src/server/authentification.h
+	gcc -o build/auth_test  build/obj/auth_test.o src/server/authentification.c -lnettle
 #object files
 
 build/obj/client.o: src/client/client.c
@@ -73,6 +74,8 @@ build/obj/kvs.o: src/server/kvs.c
 build/obj/server.o: src/server/server.c
 	gcc -pthread -c src/server/server.c -o build/obj/server.o
 
+build/obj/auth_test.o: src/test/auth_test.c
+	gcc -pthread -c src/test/auth_test.c -o build/obj/auth_test.o
 #clear all object files
 clear:
 	rm *.o
