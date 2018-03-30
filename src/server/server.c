@@ -64,8 +64,17 @@ int s_connect(int socket_descriptor) {
   }
 }
 
-SSL* s_connectTLS(int conncetionDescriptor) {
+SSL* s_connectTLS(int conncetionDescriptor, SSL_CTX* ctx) {
+  SSL* ssl;
+  ssl = SSL_new(ctx);
+  SSL_set_fd(ssl, client);
 
+  if (SSL_accept(ssl) <= 0) {
+    perror("Unable to connect (TLS)");
+    exit(EXIT_FAILURE);
+  } else {
+      return ssl;
+  }
 }
 
 
