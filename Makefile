@@ -62,8 +62,8 @@ build/connectionH: src/server/connectionHandler.c src/server/server.c
 build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o
 	gcc -o build/kvs_test build/obj/kvs.o build/obj/kvs_test.o
 
-build/auth_test: src/server/authentification.o build/obj/auth_test.o src/server/authentification.h
-	gcc -o build/auth_test  build/obj/auth_test.o src/server/authentification.c -lnettle
+build/auth_test: build/obj/authentification.o build/obj/auth_test.o src/server/authentification.h
+	gcc -o build/auth_test  build/obj/auth_test.o build/obj/authentification.o -lnettle
 
 # attention: this is machine-dependant (depends on openssl installation)
 build/sslTest: src/server/sslTest.c
@@ -85,6 +85,9 @@ build/obj/server.o: src/server/server.c
 
 build/obj/auth_test.o: src/test/auth_test.c
 	gcc -pthread -c src/test/auth_test.c -o build/obj/auth_test.o
+
+build/obj/authentification.o: src/server/authentification.c
+	gcc -pthread -o build/obj/authentification.o -c src/server/authentification.c
 #clear all object files
 clear:
 	rm *.o
