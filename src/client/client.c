@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     memset(&serv_addr, '0', sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(5000);
+    serv_addr.sin_port = htons(4567);
 
     if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0)
     {
@@ -45,6 +45,20 @@ int main(int argc, char *argv[])
        printf("\n Error : Connect Failed \n");
        return 1;
     }
+    printf("connected\n");
+
+    // write a simple request
+
+    char* message = "LOGIN unfifr:OPisgreat;";
+
+    sleep(10); // wait until message is sent to give some time to the testing
+               // programmer
+    printf("Wrting %s\n", message);
+    if (write(sockfd, message, strlen(message)) <0) {
+      printf("Sending failed.\n");
+    }
+
+
 
     while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
     {

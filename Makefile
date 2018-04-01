@@ -44,13 +44,17 @@
 	#gcc -o $@ $^
 
 
-all: build/server build/client  build/kvs_test build/auth_test #build/kvs
+all: build/client  build/kvs_test build/auth_test build/connectionH build/sslTest#build/kvs
 
 build/client: build/obj/client.o
 	gcc -o build/client build/obj/client.o
 
-build/server: build/obj/server.o src/server/server.h
-	gcc -o build/server build/obj/server.o
+#build/server: build/obj/server.o src/server/server.h
+#	gcc -o build/server -lssl -lcrypto build/obj/server.o
+
+# attention: this is machine-dependant (depends on openssl installation)
+build/connectionH: src/server/connectionHandler.c src/server/server.c
+	gcc -o build/connectionH src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/kvs: build/obj/kvs.o src/server/keyvalue.h
 #	gcc -o build/kvs build/obj/kvs.o
@@ -60,6 +64,11 @@ build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o
 
 build/auth_test: src/server/authentification.o build/obj/auth_test.o src/server/authentification.h
 	gcc -o build/auth_test  build/obj/auth_test.o src/server/authentification.c -lnettle
+
+# attention: this is machine-dependant (depends on openssl installation)
+build/sslTest: src/server/sslTest.c
+	gcc src/server/sslTest.c -o build/sslTest  -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
+
 #object files
 
 build/obj/client.o: src/client/client.c
@@ -72,7 +81,7 @@ build/obj/kvs.o: src/server/kvs.c
 	gcc -pthread -c src/server/kvs.c -o build/obj/kvs.o
 
 build/obj/server.o: src/server/server.c
-	gcc -pthread -c src/server/server.c -o build/obj/server.o
+	gcc -pthread -c src/server/server.c -o build/obj/server.o -lssl
 
 build/obj/auth_test.o: src/test/auth_test.c
 	gcc -pthread -c src/test/auth_test.c -o build/obj/auth_test.o
