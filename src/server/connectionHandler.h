@@ -20,6 +20,12 @@ Basics: Every connection has its own thread.
  */
 
 /**
+ * Used in a thread that waits for new connections. Once a new request arrives
+ * it starts a new handling thread.
+ * @param arg void pointer to the socket_d.
+ */
+void* accept_new_connections(void* arg);
+/**
  * Used in a pthread to handle one specific TCP connection.
  * @param arg a connectionInfo struct (cast to void*)
  */

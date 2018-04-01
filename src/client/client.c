@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "client.h"
+#include "../server/serverResponses.h"
 
 int main(int argc, char *argv[])
 {
@@ -49,9 +50,9 @@ int main(int argc, char *argv[])
 
     // write a simple request
 
-    char* message = "LOGIN unfifr:OPisgreat;";
+    char* message = "LOGIN unifr:OPisgreat;";
 
-    sleep(10); // wait until message is sent to give some time to the testing
+    sleep(5); // wait until message is sent to give some time to the testing
                // programmer
     printf("Wrting %s\n", message);
     if (write(sockfd, message, strlen(message)) <0) {
@@ -60,18 +61,24 @@ int main(int argc, char *argv[])
 
 
 
-    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
-    {
-        recvBuff[n] = 0;
-        if(fputs(recvBuff, stdout) == EOF)
-        {
-            printf("\n Error : Fputs error\n");
-        }
+    n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
+    if (n> 0) recvBuff[n] = 0;
+    if(fputs(recvBuff, stdout) == EOF){
+        printf("\n Error : Fputs error\n");
     }
 
     if(n < 0)
     {
         printf("\n Read error \n");
+    }
+
+    if(!strcmp(recvBuff, SUCCESS_LOGIN("unifr"))) {
+      printf("All well, exiting now\n");
+      close(sockfd);
+      printf("Socket closed\n");
+      exit(0);
+    } else {
+      printf("guess we got a wrong message\n");
     }
 
     return 0;
