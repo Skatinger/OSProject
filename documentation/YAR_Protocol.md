@@ -8,6 +8,7 @@ It is vital that the exact commands be used, otherwise the connection will fail.
 ## Conditions for Success
 * keys and values may never contain the chars ':' or ';' due to protocol reasons. This should be checked before sending!
 * The same goes for usernames and passwords, they should not contain ':' or ';'.
+* There must be exactly one space after the command (i.e. before the first argument of the message)!
 
 ## Primitives
 ### KVS-related
@@ -50,7 +51,7 @@ Used to add a new KVP to the server.
 *Usage*: `PUT <key>:<value>;`
 In case of success, the server will reply with `20 PUT <key>:<value>;`
 If the key is already in use, the server will reply `203 KEY <key> NOT FREE;`
-If the storage is full, the server will reply "999 SERVER OVERFLOW;"
+If the storage is full, the server will reply `999 SERVER OVERFLOW;`
 
 ## DEL
 Used to delete a KVP from the server.
@@ -66,7 +67,7 @@ If the key wasn't found, it will reply `100 KEY <key> NOT FOUND;`
 
 ## LOGIN
 Used to ask the server for access with given login information.
-*Usage*: `LOGIN <username>:<password>;"
+*Usage*: `LOGIN <username>:<password>;`
 In case of success, the server will return `50 USER <username> LOGGED IN;`
 If access is denied, the server will return `500 ACCESS FOR USER <username> DENIED;`
 
