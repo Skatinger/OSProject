@@ -6,11 +6,15 @@
 
 #define BUFFERSIZE 1024
 
+#if USE_SSL == TRUE
+  #include <openssl/ssl.h>
+#endif
+
 typedef struct connectionInfo {
   int data_length;                // length of read data
   char buffer[BUFFERSIZE];   // buffer to read data from this connection
   int socket_descriptor; // the socket for this connection (represented by an int)
-  #if USE_SSL
+  #if USE_SSL == TRUE
   SSL* tls_descriptor;   // the ssl connection
   #endif
 } connectionInfo;

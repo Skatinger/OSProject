@@ -44,16 +44,16 @@
 	#gcc -o $@ $^
 
 
-all: build/client  build/kvs_test build/auth_test build/connectionH build/sslTest#build/kvs
+all: build/client  build/kvs_test build/auth_test build/connectionH build/sslTest src/project.h #build/kvs
 
-build/client: build/obj/client.o
-	gcc -o build/client build/obj/client.o
+build/client: src/client/client.c
+	gcc -o build/client src/client/client.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/server: build/obj/server.o src/server/server.h
 #	gcc -o build/server -lssl -lcrypto build/obj/server.o
 
 # attention: this is machine-dependant (depends on openssl installation)
-build/connectionH: src/server/connectionHandler.c src/server/server.c
+build/connectionH: src/server/connectionHandler.c src/server/server.c src/server/server.h
 	gcc -o build/connectionH src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/kvs: build/obj/kvs.o src/server/keyvalue.h

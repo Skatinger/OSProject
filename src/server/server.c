@@ -1,5 +1,4 @@
-#define USE_SSL FALSE
-//#define DEBUG TRUE
+#define USE_SSL TRUE
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -93,7 +92,7 @@ int s_read(connectionInfo* cinf) {
   // initialising the buffer with zeros
   bzero(cinf->buffer, BUFFERSIZE);
 
-  printf("hello from s_read\n");
+  //printf("hello from s_read\n");
 
   // reading the transmitted data into the buffer
   cinf->data_length = read(cinf->socket_descriptor, cinf->buffer, BUFFERSIZE -1);
@@ -119,25 +118,74 @@ int s_write(connectionInfo* cinf, char message[BUFFERSIZE]) {
 // partly inspired by a web tutorial :)
 
 #if USE_SSL
-SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx) {
+// SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx) {
+//   SSL* ssl;
+//   // create a new SSL connection info based on the context
+//   ssl = SSL_new(ctx);
+//   // and 'bind' it to the existing TCP connection socket (an already accepted
+//   // conncetion of a client!)
+//   SSL_set_fd(ssl, connection_descriptor);
+//
+//   if (SSL_accept(ssl) <= 0) {
+//     perror("Unable to connect (TLS)");
+//     exit(EXIT_FAILURE);
+//   } else {
+//       return ssl;
+//   }
+// }
+//
+int s_connectTLS(int connection_descriptor, SSL_CTX* ctx, SSL** ssl_to_store) {
   SSL* ssl;
   // create a new SSL connection info based on the context
-  ssl = SSL_new(ctx);
+  *ssl_to_store = SSL_new(ctx);
   // and 'bind' it to the existing TCP connection socket (an already accepted
   // conncetion of a client!)
-  SSL_set_fd(ssl, connection_descriptor);
-
-  if (SSL_accept(ssl) <= 0) {
+  SSL_set_fd(*ssl_to_store, connection_descriptor);
+  int err;
+  if ((err = SSL_accept(*ssl_to_store)) <= 0) {
+    printf("%s\n", ERR_error_string(SSL_get_error(*ssl_to_store, err), NULL));
+    char buf[256];
+    while ((err = ERR_get_error()) != 0) {
+      ERR_error_string_n(err, buf, sizeof(buf));
+      printf("*** %s\n", buf);
+   }
     perror("Unable to connect (TLS)");
+
     exit(EXIT_FAILURE);
   } else {
-      return ssl;
+      return 1;
+  }
+}
+
+int s_readTLS(connectionInfo* cinf) {
+  // initialising the buffer with zeros
+  bzero(cinf->buffer, BUFFERSIZE);
+
+  // reading the transmitted data into the buffer
+  cinf->data_length = SSL_read(cinf->tls_descriptor, cinf->buffer, BUFFERSIZE -1);
+  if (cinf->data_length < 0) {
+    perror("Unable to read data from TLS client.");
+    return cinf->data_length;
+  } else {
+    return 0;
+  }
+}
+
+
+int s_writeTLS(connectionInfo* cinf, char message[BUFFERSIZE]) {
+  int n = SSL_write(cinf->tls_descriptor, message, strlen(message));
+  if (n <= 0) {
+    perror("Unable to write data to client");
+    return n == 0 ? -1 : n;
+  } else {
+    return 0;
   }
 }
 
 
 void init_openssl() {
   // load stuff
+    SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
 }
@@ -164,6 +212,11 @@ SSL_CTX *create_context() {
 
     // no idea yet what this is, will have to check man
     SSL_CTX_set_ecdh_auto(ctx, 1);
+
+    // for the moment, verification is off to make debugging less annoying.
+    SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+
+    //SSL_CTX_load_verify_locations(ctx, CA_CERT_FILE, NULL);
 
     // Set the key and certificate
     // I used a self-signed certificate as I didn't wanna pay for one

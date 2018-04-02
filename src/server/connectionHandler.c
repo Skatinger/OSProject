@@ -1,4 +1,4 @@
-#define USE_SSL FALSE
+#define USE_SSL TRUE
 
 #include <pthread.h>
 #include <stdio.h>
@@ -28,6 +28,7 @@ int main(int argc, char const *argv[]) {
   int socket_d =  0;
 
   char c;
+
 
   socket_d = createServerSocket(PORT);
   s_listen(socket_d);
@@ -73,12 +74,11 @@ void* accept_new_connections(void* arg) {
     //printf("buffer: %s\n", cinf->buffer);
     printf("buffer: %s\n", cinf->buffer);
     #if USE_SSL
+      SSL* ssl = NULL;
       init_openssl();
       SSL_CTX* context = create_context();
-      configure_context(context);
-      SSL* ssl = s_connectTLS(connection_descriptor, context);
+      s_connectTLS(connection_descriptor, context, &ssl);
       cinf->tls_descriptor = ssl;
-
       printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handleTLSConnection, (void*)cinf));
     #else
       printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handleConnection, (void*)cinf));
@@ -94,7 +94,7 @@ char* getSecondParam(char* msg);
 void* handleConnection(void* arg) {
   // casting back to struct holding the data
   connectionInfo* cinf = (connectionInfo*) arg;
-  printf("hello from 'child' thread\n");
+  //printf("hello from 'child' thread\n");
   int r = s_read(cinf);
   if (r == 0) printf("Reading from socket %d:\n%s\n", cinf->socket_descriptor, cinf->buffer);
 
@@ -106,10 +106,23 @@ void* handleConnection(void* arg) {
   return NULL;
 }
 
-void* handleTLSConnection(void* arg) {
-  return NULL;
-}
+#if USE_SSL
+  void* handleTLSConnection(void* arg) {
 
+    connectionInfo* cinf = (connectionInfo*) arg;
+
+    int r = s_readTLS(cinf);
+    if (r == 0) printf("Reading from socket %d:\n%s\n", cinf->socket_descriptor, cinf->buffer);
+
+    char* username = getFirstParam(cinf->buffer);
+    //char* password = getSecondParam(cinf->buffer);
+    s_writeTLS(cinf, SUCCESS_LOGIN(username));
+    // if that test was successful, kill the program
+    //pthread_cancel(mainThread);
+    return NULL;
+
+  }
+#endif
 
 //============ PARSING FUNCTIONS ===================
 // should be moved into a separate file once complete, these
@@ -136,8 +149,24 @@ char* getSecondParam(char* msg) {
   static char param[BUFFERSIZE];
   int i, n, k;
   i = 0; n = strlen(msg);
+
+  // skip the command and first arg
   while (msg[i] != ':') {i++;}
-  i++; k = i;
+  i++; k = i; // k = beginning of the second arg
+  // loop until end or third arg begins
   while (msg[i] != ';' && msg[i] != ':') {param[i-k] = msg[i]; i++;}
+  return param;
+}
+
+char* getThirdParam(char* msg) {
+  static char param[BUFFERSIZE];
+  int i, n, k;
+  i = 0; n = strlen(msg);
+
+  while(msg[i] != ':') {i++;}
+  i++; // loop over the secon arg as well
+  while(msg[i] != ':') {i++;}
+  i++; k = i;
+  while (msg[i] != ';') {param[i-k] = msg[i]; i++;}
   return param;
 }

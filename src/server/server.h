@@ -2,8 +2,14 @@
 #define HEADER_FILE
 
 #define MAX_CONNECTION_QUEUE 5
-#define CERTIFICATE_FILE "../../crypto/YARcertificate.crt"
-#define KEY_FILE "../../crypto/YARkey.key"
+
+/* Depends on current working dir! */
+#define CERTIFICATE_FILE "crypto/YARcertificate.pem"
+#define KEY_FILE "crypto/YARkey.key"
+#define CA_CERT_FILE "crypto/Fake_CA/ca.crt"
+#define CA_KEY_FILE "crypto/Fake_CA/key.crt"
+
+#define USE_SSL TRUE
 
 
 #include "connectionHandler.h"
@@ -63,7 +69,7 @@ int s_write(connectionInfo* cinf, char message[BUFFERSIZE]);
 // ============ TLS STUFF FOR future ===============
 // =================================================
 
-#if USE_SSL
+#if USE_SSL == TRUE
 /**
  * Abstraction of accepting a connection via TLS. similar to s_connect.
  * @param  connection_descriptor descriptor of a regular TCP socket connection as
@@ -71,9 +77,20 @@ int s_write(connectionInfo* cinf, char message[BUFFERSIZE]);
  * @param  ctx                   the context of the TSL connection.
  * @return                       a new TLS connection data struct.
  */
-SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx);
+//SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx);
 
+int s_connectTLS(int connection_descriptor, SSL_CTX* ctx, SSL** ssl_to_store);
 
+/**
+ * Reads from the (TLS) connection given in the argument and stores the read STUFF
+ * in that buffer. Handles errors (basic).
+ * Blocks as long as there is nothing to read.
+ * @param  cinf a struct describing the TCP / TLS connection
+ * @return 0 if successful, other int if not.
+ */
+int s_readTLS(connectionInfo* cinf);
+
+int s_writeTLS(connectionInfo* cinf, char message[BUFFERSIZE]);
 
 /**
  * initialise everything needed for a TLS connection.
