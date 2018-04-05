@@ -2,7 +2,7 @@
 #define CONNECTIONHANDLER
 
 #define MAX_CONNECTIONS 100
-#define PORT 4567
+#define PORT 50000
 
 #define BUFFERSIZE 1024
 

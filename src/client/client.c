@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
     memset(&serv_addr, '0', sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(4567);
+    serv_addr.sin_port = htons(50000);
 
     if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0) {
         printf("\n inet_pton error occured\n");
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     printf("connected socket\n");
 
 //============ TLS test part =======================
-    #if USE_SSL
+    #if USE_SSL == TRUE
       SSL_CTX* ctx = NULL;
       BIO *web = NULL, *out = NULL;
       SSL *ssl = NULL;

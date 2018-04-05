@@ -9,8 +9,12 @@
 #define ERROR_USERNAME_TOO_LONG 1
 
 #define MAXUSERS 1000
-#define SALT_LENGTH 50
+#define SALT_LENGTH 64
 #define ALPHABET_SIZE 26
+
+
+
+#define SHA_512_DIGEST_SIZE 64
 
 #include <stdint.h>
 #include <pthread.h>
@@ -36,15 +40,17 @@
 /**
  * Structure with all necessary info for a user.
  * @member username the username string with max 30 chars
- * @member passwordHash the SHA-xxx hashvalue of their passwords
+ * @member passwordHash the PBKDF2 generated hash of the user's pw
  * @member salt the corresponding salt
- * @member RIGHTS indicating whether this user has admin rights
+ * @memeber iter the number of iterations for this user in the pw hashing algo
+ * @member rights indicating whether this user has admin rights
  */
 typedef struct {
   int id;                 // unique id given by the system
   char* username;
   uint8_t* passwordHash;
-  char* salt;
+  uint8_t* salt;
+  int iter;
   int rights;             // 0 == adminRights, rest TBD
 } user_t;
 
@@ -70,7 +76,7 @@ void initUserHandler();
 user_db_t* initUserDB();
 /**
  * Returns a pointer to a new empty user.
- * @return pointer to a user
+ * @return pointer to an empty user
  */
 user_t* initUser();
 
@@ -102,7 +108,7 @@ user_t* getUserById(int id);
  * Get user based on their username.
  * @param the db to search in
  * @param  username of the desired user
- * @return          a pointer to the user info struct
+ * @return a pointer to the user info struct
  */
 user_t* getUserByName(user_db_t* db, char* username);
 
@@ -122,7 +128,36 @@ int checkCredentials(user_db_t* db, char* username, char* password);
  */
 int hasAccess(user_t* user);
 
+/**
+ * Prints all the necessary user information to stdout.
+ * @param user the user to print
+ */
 void printUser(user_t* user);
 
-uint8_t* createHash(char* password, char* salt);
+/**
+ * Auxlilary function that takes an array of bytes and turns it into a human-
+ * readable hex-string.
+ * @param  bytes   an array of bytes
+ * @param  nbBytes the number of Bytes to be turned into a string
+ * @return    the string.
+ */
+char* bytesToHexString(uint8_t* bytes, int nbBytes);
+
+
+/**
+ * Creates a hash from the given password and salt. Uses the widely used legacy
+ * pbkdf2 algorithm with iter iterations to make the hashing slower, thus
+ * cracking a password more difficult.
+ *
+ * the number of iterations may vary from user to user (this is so that the number can
+ * be increased with better hardware in the future), that's why it is passed as
+ * an argument.
+ * @param  password A string with the password to hash
+ * @param  salt     An array of random bytes unique to each user
+ * @param  iter     the number of iterations to do
+ * @return          the array with the byte hash
+ */
+uint8_t* createHash(char* password, uint8_t* salt, int iter);
+
+void updateIterationCount(int newCount);
 #endif
