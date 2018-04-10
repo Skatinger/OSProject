@@ -38,6 +38,12 @@ int main(int argc, char *argv[]) {
         printf("\n Usage: %s <ip of server> \n",argv[0]);
         return 1;
     }
+    
+    //much beautiful
+    //clears the screen
+    system("clear");
+    //clears the keyboard buffer
+    fflush(stdin);
 
     memset(recvBuff, '0',sizeof(recvBuff));
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
