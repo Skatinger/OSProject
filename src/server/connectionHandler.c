@@ -34,6 +34,7 @@ int main(int argc, char const *argv[]) {
   s_listen(socket_d);
   pthread_t pid;
 
+  printf("Listening for new connections now\n");
   // new thread that waits for connections
   pthread_create(&pid, NULL, accept_new_connections, (void *)&socket_d);
 

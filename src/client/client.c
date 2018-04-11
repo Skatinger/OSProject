@@ -11,8 +11,10 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "client.h"
+#include "clientRequests.h"
 #include "../server/serverResponses.h"
 #include "../project.h"
+
 
 #if USE_SSL == TRUE
   #include <openssl/ssl.h>
@@ -21,11 +23,14 @@
 
 void handleFailure(char* msg) {printf("failure: %s\n", msg);}
 
-void init_openssl_library(void){
+void init_openssl_library() {
+  #if USE_SSL == TRUE
   (void)SSL_library_init();
 
   SSL_load_error_strings();
+  #endif
 }
+
 
 int main(int argc, char *argv[]) {
     int sockfd = 0, n = 0;
@@ -67,6 +72,7 @@ int main(int argc, char *argv[]) {
 
 //============ TLS test part =======================
     #if USE_SSL == TRUE
+
       SSL_CTX* ctx = NULL;
       BIO *web = NULL, *out = NULL;
       SSL *ssl = NULL;
@@ -79,9 +85,9 @@ int main(int argc, char *argv[]) {
       ctx = SSL_CTX_new(method);
       if(!(ctx != NULL)) handleFailure("new ctx");
 
-      /* Cannot fail ??? */
-      SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
-      //SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
+
+      //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
+      SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
 
       /* Cannot fail ??? */
@@ -108,12 +114,12 @@ int main(int argc, char *argv[]) {
 
     // write a simple request
 
-    char* message = "LOGIN unifr:OPisgreat;";
+    char* message = LOGIN("unifr", "OPisgreat");
 
     sleep(5); // wait until message is sent to give some time to the testing
                // programmer
     printf("Wrting %s\n", message);
-    #if USE_SSL
+    #if USE_SSL == TRUE
       if (SSL_write(ssl, message, strlen(message)) <= 0) {
         printf("sending ssl failed.\n");
       }
@@ -124,7 +130,7 @@ int main(int argc, char *argv[]) {
     #endif
 
 
-    #if USE_SSL
+    #if USE_SSL == TRUE
       n = SSL_read(ssl, recvBuff, sizeof(recvBuff) - 1);
     #else
       n = read(sockfd, recvBuff, sizeof(recvBuff)-1);

@@ -56,7 +56,9 @@
 char* concat(int num, ...) {
   va_list vlist;
   va_start(vlist, num);
-  char* dest = va_arg(vlist, char*);
+  char* dest = malloc(1024*sizeof(char));
+  dest[0] = '\0';
+  strcat(dest, va_arg(vlist, char*));
   for (int i = 1; i < num; i++) {
     char* source = va_arg(vlist, char*);
     strcat(dest,source);
@@ -66,7 +68,7 @@ char* concat(int num, ...) {
 }
 
 char* intToString(int num) {
-  char* ret = malloc(100*sizeof(char));
+  char* ret = malloc(3*sizeof(char));
   sprintf(ret, "%d", num);
   return ret;
 }
