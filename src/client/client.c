@@ -3,14 +3,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include "client.h"
-#include "clientRequests.h"
-#include "../server/serverResponses.h"
+
 
 
 #if USE_TLS == TRUE
@@ -18,137 +16,163 @@
   #include <openssl/err.h>
 #endif
 
-void handleFailure(char* msg) {printf("failure: %s\n", msg);}
+/*
+ * Since all of these are only used here, it seems to make sense to declare
+ * them globally (within file scope, thus <code>static</code>). Since this is
+ * a client, there is only one socket to treat anyway.
+ */
+static struct sockaddr_in server_address;
+static int socket_descriptor;
+static SSL* tls;
 
-void init_openssl_library() {
-  #if USE_TLS == TRUE
-  (void)SSL_library_init();
+static struct sockaddr_in c_parse_address(int port, char* ip_address) {
+  struct sockaddr_in addr;
 
+  memset(&addr, '0', sizeof(addr)); // zero-init
+
+  // convert IP string to usable data
+  if(inet_pton(AF_INET, ip_address, &addr.sin_addr)<=0) {
+      perror("\n IP conversion error occured\n");
+      exit(EXIT_FAILURE);
+  }
+
+  // AF_INET = usual IP protocol family
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port); // htons converts portNr into needed format
+
+  return addr;
+}
+
+static int c_create_socket(int port) {
+  int socket_descriptor = 0;
+
+  // create a new socket
+  socket_descriptor = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+  if (socket_descriptor < 0) {
+      perror("Unable to create socket");
+      exit(EXIT_FAILURE);
+  }
+
+  return socket_descriptor;
+}
+
+static void c_init_TLS() {
+  SSL_CTX* ctx;
+  int err;
+  SSL_library_init();
   SSL_load_error_strings();
-  #endif
+
+  socket_descriptor = c_create_socket(PORT);
+  printf("-- Created socket --\n");
+
+  ctx = c_create_context();
+  tls = SSL_new(ctx);
+}
+
+int c_connect_TLS(char* ip_address) {
+  c_init_TLS();
+  server_address = c_parse_address(PORT, ip_address);
+
+  if(connect(socket_descriptor, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
+     perror("Socket connecting failed");
+     exit(EXIT_FAILURE);
+     return 1;
+  }
+
+  if (SSL_set_fd(tls, socket_descriptor) <= 0) {
+    c_TLS_error("Joining TLS with Socket failed", TRUE);
+    return 1;
+  }
+  printf("-- Joined socket with tls -- \n");
+
+  if (SSL_connect(tls) <= 0) {
+    c_TLS_error("TLS connection failed", TRUE);
+    return 1;
+  }
+  printf("-- Connected to server -- \n");
+  return 0;
+}
+
+int c_send_TLS(char* message) {
+  int n = SSL_write(tls, message, strlen(message));
+  if (n <= 0) {
+    c_TLS_error("Unable to send message to server", FALSE);
+    return n - 1;
+  } else {
+    return 0;
+  }
+}
+
+int c_receive_TLS(char buffer[BUFFER_SIZE]) {
+  // initialising the buffer with zeros
+  bzero(buffer, BUFFER_SIZE);
+  int n;
+
+  // reading the transmitted data into the buffer
+  n = SSL_read(tls, buffer, BUFFER_SIZE -1);
+  if (n <= 0) {
+    c_TLS_error("Unable to read data from TLS server.", FALSE);
+    return n - 1;
+  } else {
+    buffer[n] = '\0';
+    return 0;
+  }
+}
+
+// for testing only
+void c_end_TLS() {
+  close(socket_descriptor);
+  EVP_cleanup();
+  free(tls);
 }
 
 
-int main(int argc, char *argv[]) {
-    int sockfd = 0, n = 0;
-    char recvBuff[1024];
-    struct sockaddr_in serv_addr;
+static SSL_CTX* c_create_context() {
+  SSL_CTX* ctx = NULL;
+  int err; char buf[ERR_BUF_SIZE];
 
-    long res; int err;
+  // this will negotiate the newest TLS version with the server
+  const SSL_METHOD* method = SSLv23_method();
+  if(method == NULL) {
+    c_TLS_error("TLS method somehow null...", TRUE);
+  }
 
-    if(argc != 2) {
-        printf("\n Usage: %s <ip of server> \n",argv[0]);
-        return 1;
-    }
+  // create the context based on the chosen method
+  ctx = SSL_CTX_new(method);
+  if(!ctx) {
+    c_TLS_error("TLS context creation failed.", TRUE);
+  }
 
-    memset(recvBuff, '0',sizeof(recvBuff));
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n Error : Could not create socket \n");
-        return 1;
-    }
-    printf("Created socket\n");
+  /*
+  For the moment, certificate verification is off as this can be rather annoying
+  to debug and stuff.
+  Also, it isn't rally necessary.
+   */
+  SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-    memset(&serv_addr, '0', sizeof(serv_addr));
+  //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(50000);
+  //SSL_CTX_set_verify_depth(ctx, 4);
+  // res = SSL_CTX_load_verify_locations(ctx, "crypto/Fake_CA/ca.crt", NULL);
+  // if(!(1 == res)) c_TLS_error("verify locations");
 
-    if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0) {
-        printf("\n inet_pton error occured\n");
-        return 1;
-    }
+  // set sesible options for this connection
+  const long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
+  SSL_CTX_set_options(ctx, flags);
 
-    printf("create server address\n");
+  return ctx;
+}
 
-    if( connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-       printf("\n Error : Connect Failed \n");
-       return 1;
-    }
+static void c_TLS_error(char* error_msg, int exit_program) {
+  int err;
+  char buf[ERR_BUF_SIZE];
 
-    printf("connected socket\n");
+  // get all SSL error messages
+  while ((err = ERR_get_error()) != 0) {
+    ERR_error_string_n(err, buf, sizeof(buf));
+    printf("*** %s\n", buf);
+  }
 
-//============ TLS test part =======================
-    #if USE_TLS == TRUE
-
-      SSL_CTX* ctx = NULL;
-      BIO *web = NULL, *out = NULL;
-      SSL *tls = NULL;
-
-      init_openssl_library();
-
-      const SSL_METHOD* method = SSLv23_method();
-      if(!(NULL != method)) handleFailure("method");
-
-      ctx = SSL_CTX_new(method);
-      if(!(ctx != NULL)) handleFailure("new ctx");
-
-
-      //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
-      SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-
-
-      /* Cannot fail ??? */
-      //SSL_CTX_set_verify_depth(ctx, 4);
-
-      /* Cannot fail ??? */
-      const long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
-      SSL_CTX_set_options(ctx, flags);
-
-      // res = SSL_CTX_load_verify_locations(ctx, "crypto/Fake_CA/ca.crt", NULL);
-      // if(!(1 == res)) handleFailure("verify locations");
-
-      tls=SSL_new(ctx);
-
-      SSL_set_fd(tls, sockfd);
-      printf("joined sock with tls\n");
-      err = SSL_connect(tls);
-      if (err < 1) {printf("tls connecting failed %d.\n", err);}
-    #endif
-
-    printf("connected\n");
-
-
-
-    // write a simple request
-
-    char* message = LOGIN("unifr", "OPisgreat");
-
-    sleep(5); // wait until message is sent to give some time to the testing
-               // programmer
-    printf("Wrting %s\n", message);
-    #if USE_TLS == TRUE
-      if (SSL_write(tls, message, strlen(message)) <= 0) {
-        printf("sending tls failed.\n");
-      }
-    #else
-      if (write(sockfd, message, strlen(message)) <0) {
-        printf("Sending failed.\n");
-      }
-    #endif
-
-
-    #if USE_TLS == TRUE
-      n = SSL_read(tls, recvBuff, sizeof(recvBuff) - 1);
-    #else
-      n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
-    #endif
-    if (n> 0) recvBuff[n] = 0;
-    if(fputs(recvBuff, stdout) == EOF) {
-        printf("\n Error : Fputs error\n");
-    }
-
-    if(n < 0) {
-        printf("\n Read error \n");
-    }
-
-    if(!strcmp(recvBuff, SUCCESS_LOGIN("unifr"))) {
-      printf("All well, exiting now\n");
-      close(sockfd);
-      printf("Socket closed\n");
-      exit(0);
-    } else {
-      printf("guess we got a wrong message\n");
-    }
-
-    return 0;
+  perror(error_msg);
+  if (exit_program) exit(EXIT_FAILURE);
 }

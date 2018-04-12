@@ -44,10 +44,10 @@
 	#gcc -o $@ $^
 
 
-all: build/client  build/kvs_test build/auth_test build/connectionH build/sslTest src/project.h #build/kvs
+all: build/client_test  build/kvs_test build/auth_test build/connectionH build/sslTest src/project.h #build/kvs
 
-build/client: src/client/client.c
-	gcc -o build/client src/client/client.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+#build/client: src/client/client.c
+#	gcc -o build/client src/client/client.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 
 #build/server: build/obj/server.o src/server/server.h
@@ -70,10 +70,12 @@ build/auth_test: src/server/authentification.c src/test/auth_test.c src/server/a
 build/sslTest: src/server/sslTest.c
 	gcc src/server/sslTest.c -o build/sslTest  -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
 
+build/client_test: src/client/client.c src/test/client_test.c
+	gcc src/test/client_test.c src/client/client.c -o build/client_test -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 #object files
 
-build/obj/client.o: src/client/client.c
-	gcc -pthread -c src/client/client.c -o build/obj/client.o
+#build/obj/client.o: src/client/client.c
+#	gcc -pthread -c src/client/client.c -o build/obj/client.o
 
 build/obj/kvs_test.o: src/test/kvs_test.c
 	gcc -pthread -c src/test/kvs_test.c -o build/obj/kvs_test.o

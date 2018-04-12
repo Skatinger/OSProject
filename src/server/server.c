@@ -19,21 +19,21 @@
 
 
 // the address of this server (based on its real address)
-struct sockaddr_in serverAddress;
+static struct sockaddr_in server_address;
 
 struct sockaddr_in s_init_address(int port) {
-  struct sockaddr_in* server;
+  struct sockaddr_in server;
 
-  server = malloc(sizeof(struct sockaddr_in));
+  memset(&server, '0', sizeof(server)); // zero initialise
 
   // INADDR_ANY is the actual IP address of this machine
   // htonl converts it into the needed format
-  server->sin_addr.s_addr = htonl(INADDR_ANY); // takes address of this computer
+  server.sin_addr.s_addr = htonl(INADDR_ANY); // takes address of this computer
   // AF_INET = usual IP protocol family
-  server->sin_family = AF_INET;
-  server->sin_port = htons(port); // htons converts portNr into needed format
+  server.sin_family = AF_INET;
+  server.sin_port = htons(port); // htons converts portNr into needed format
 
-  return *server;
+  return server;
 }
 
 int s_create_socket(int port) {
@@ -47,10 +47,10 @@ int s_create_socket(int port) {
         exit(EXIT_FAILURE);
     }
     // init the address of this server
-    serverAddress = s_init_address(port);
+    server_address = s_init_address(port);
 
     // try to bind the socket to this address
-    if (bind(socket_descriptor, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
+    if (bind(socket_descriptor, (struct sockaddr*) &server_address, sizeof(server_address)) < 0) {
         perror("Unable to bind socket");
         exit(EXIT_FAILURE);
     }
@@ -132,19 +132,18 @@ int s_connect_TLS(int connection_descriptor, SSL** tls_to_store) {
   *tls_to_store = SSL_new(ctx);
   // and 'bind' it to the existing TCP connection socket (an already accepted
   // conncetion of a client!)
-  SSL_set_fd(*tls_to_store, connection_descriptor);
   int err;
+
+  if ((err = SSL_set_fd(*tls_to_store, connection_descriptor)) <= 0) {
+    s_TLS_error("Joining socket with TLS failed.", FALSE);
+  }
+
   if ((err = SSL_accept(*tls_to_store)) <= 0) {
     printf("%s\n", ERR_error_string(SSL_get_error(*tls_to_store, err), NULL));
-    char buf[ERR_BUF_SIZE];
-    while ((err = ERR_get_error()) != 0) {
-      ERR_error_string_n(err, buf, sizeof(buf));
-      printf("*** %s\n", buf);
-    }
-    perror("Unable to connect (TLS)");
-    exit(EXIT_FAILURE);
+    s_TLS_error("Unable to connect (TLS)", FALSE);
+    return -1;
   } else {
-    return 1;
+    return 0;
   }
 }
 
@@ -152,20 +151,11 @@ int s_read_TLS(connection_t* con_info) {
   // initialising the buffer with zeros
   bzero(con_info->buffer, BUFFER_SIZE);
 
-
   // reading the transmitted data into the buffer
   con_info->data_length = SSL_read(con_info->TLS_descriptor, con_info->buffer, BUFFER_SIZE -1);
-  if (con_info->data_length < 0) {
-    int err;
-    char buf[ERR_BUF_SIZE];
-    perror("Unable to read data from TLS client.");
-
-    // get all SSL error messages
-    while ((err = ERR_get_error()) != 0) {
-      ERR_error_string_n(err, buf, sizeof(buf));
-      printf("*** %s\n", buf);
-    }
-    return con_info->data_length;
+  if (con_info->data_length <= 0) {
+    s_TLS_error("Unable to read data from TLS client.", FALSE);
+    return con_info->data_length - 1;
   } else {
     return 0;
   }
@@ -175,47 +165,29 @@ int s_read_TLS(connection_t* con_info) {
 int s_write_TLS(connection_t* con_info, char message[BUFFER_SIZE]) {
   int n = SSL_write(con_info->TLS_descriptor, message, strlen(message));
   if (n <= 0) {
-    int err;
-    char buf[ERR_BUF_SIZE];
-    perror("Unable to write data to client");
-
-    // get all SSL error messages
-    while ((err = ERR_get_error()) != 0) {
-      ERR_error_string_n(err, buf, sizeof(buf));
-      printf("*** %s\n", buf);
-    }
+    s_TLS_error("Unable to write data to client", FALSE);
     return n == 0 ? -1 : n;
   } else {
     return 0;
   }
 }
 
-
-void cleanup_openssl() {
-    EVP_cleanup();
-}
-
-SSL_CTX *s_create_TLS_context() {
+SSL_CTX* s_create_TLS_context() {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
     // negotiates the newest possible version of TLS
     method = SSLv23_server_method();
+    if (!method) {
+      s_TLS_error("Method assignment failed", TRUE);
+
+    }
 
     // try to create a new context which will hold certain ECKDATEN for the
     // conncetion
     ctx = SSL_CTX_new(method);
     if (!ctx) {
-	     perror("Unable to create SSL context");
-       int err;
-       char buf[ERR_BUF_SIZE];
-
-       // get all SSL error messages
-       while ((err = ERR_get_error()) != 0) {
-         ERR_error_string_n(err, buf, sizeof(buf));
-         printf("*** %s\n", buf);
-       }
-	     exit(EXIT_FAILURE);
+      s_TLS_error("Unable to create TLS context", TRUE);
     }
 
     // no idea yet what this is, will have to check man
@@ -230,28 +202,34 @@ SSL_CTX *s_create_TLS_context() {
     // I used a self-signed certificate as I didn't wanna pay for one
     // the file locations are defined in the header.
     if (SSL_CTX_use_certificate_file(ctx, CERTIFICATE_FILE, SSL_FILETYPE_PEM) <= 0) {
-      int err;
-      char buf[ERR_BUF_SIZE];
-
-      // get all SSL error messages
-      while ((err = ERR_get_error()) != 0) {
-        ERR_error_string_n(err, buf, sizeof(buf));
-        printf("*** %s\n", buf);
-      }
-     exit(EXIT_FAILURE);
+      s_TLS_error("Certificate file loading failed", FALSE);
     }
 
     if (SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE, SSL_FILETYPE_PEM) <= 0 ) {
-      int err;
-      char buf[ERR_BUF_SIZE];
-
-      // get all SSL error messages
-      while ((err = ERR_get_error()) != 0) {
-        ERR_error_string_n(err, buf, sizeof(buf));
-        printf("*** %s\n", buf);
-      }
-     exit(EXIT_FAILURE);
+      s_TLS_error("Private Key file Loading failed.", TRUE);
     }
     return ctx;
 }
+
+void s_TLS_error(char* error_msg, int exit_program) {
+  int err;
+  char buf[ERR_BUF_SIZE];
+
+  // get all SSL error messages
+  while ((err = ERR_get_error()) != 0) {
+    ERR_error_string_n(err, buf, sizeof(buf));
+    printf("*** %s\n", buf);
+  }
+
+  perror(error_msg);
+  if (exit_program) exit(EXIT_FAILURE);
+}
+
+void s_end_TLS(connection_t* con_info) {
+  close(con_info->socket_descriptor);
+  EVP_cleanup();
+  free(con_info);
+}
+
+
 #endif

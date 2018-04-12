@@ -109,11 +109,14 @@ void* handle_connection(void* arg) {
     connection_t* con_info = (connection_t*) arg;
 
     int r = s_read_TLS(con_info);
-    if (r == 0) printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
+    if (r == 0) {
+      printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
 
-    char* username = getFirstParam(con_info->buffer);
-    //char* password = getSecondParam(con_info->buffer);
-    s_write_TLS(con_info, SUCCESS_LOGIN(username));
+      char* username = getFirstParam(con_info->buffer);
+      //char* password = getSecondParam(con_info->buffer);
+      s_write_TLS(con_info, SUCCESS_LOGIN(username));
+      s_end_TLS(con_info);
+    }
     // if that test was successful, kill the program
     //pthread_cancel(mainThread);
     return NULL;

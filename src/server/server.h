@@ -74,16 +74,21 @@ int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
 
 #if USE_TLS == TRUE
   /**
+   * initialise everything needed for a TLS connection.
+   */
+  void s_init_TLS();
+
+  /**
    * Abstraction of accepting a connection via TLS. similar to s_connect. Sets
-   * up the context of an TLS connection and
+   * up the context of an TLS connection and connects.
+   * Handles errors ()
    * @param  connection_descriptor descriptor of a regular TCP socket connection as
    *                               created by s_connect().
-   * @return                       a new TLS connection data struct.
+   * @return                       0 if successful
    */
   //SSL* s_connect_TLS(int connection_descriptor, SSL_CTX* ctx);
 
   int s_connect_TLS(int connection_descriptor, SSL** tls_to_store);
-
   /**
    * Reads from the (TLS) connection given in the argument and stores the read STUFF
    * in that buffer. Handles errors (basic).
@@ -102,9 +107,10 @@ int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
   int s_write_TLS(connection_t* con_info, char message[BUFFER_SIZE]);
 
   /**
-   * initialise everything needed for a TLS connection.
+   * Ends a TLS connection.
+   * @param con_info the connection to end.
    */
-  void s_init_TLS();
+  void s_end_TLS(connection_t* con_info);
 
   /**
    * Auxiliary function used to set up a TLS connection.
@@ -114,6 +120,14 @@ int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
    * @return the context
    */
   SSL_CTX* s_create_TLS_context();
+
+  /**
+   * Used to print TLS errors. Exits the program if the arg is nonzero.
+   * @param error_msg A message to print about the error
+   * @param indicates if the program should be stopped
+   */
+  void s_TLS_error(char* error_msg, int exit_program);
+
 #endif
 
 
