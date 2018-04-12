@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../project.h"
 
 /* =========SUCCESS CODE DEFS======================*/
 #define SUCCESS_GOT_NR    10

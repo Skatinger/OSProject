@@ -1,6 +1,8 @@
 #ifndef HEADER_FILE
 #define HEADER_FILE
 
+#include "../project.h"
+
 #define MAX_CONNECTION_QUEUE 5
 
 /* Depends on current working dir! */
@@ -9,7 +11,6 @@
 #define CA_CERT_FILE "crypto/Fake_CA/ca.crt"
 #define CA_KEY_FILE "crypto/Fake_CA/key.crt"
 
-#define USE_SSL TRUE
 
 
 #include "connectionHandler.h"

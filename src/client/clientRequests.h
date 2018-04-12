@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include "../server/serverResponses.h"
+#include "../project.h"
 
 #define GET(K) concat(3, "GET ", K, ";\n")
 #define PUT(K,V) concat(5, "PUT ", K, ":", V, ";\n")

@@ -1,9 +1,7 @@
 #ifndef AUTHENTIFICATION
 #define AUTHENTIFICATION
 
-// BOOLEANS
-#define FALSE 0
-#define TRUE  1
+#include "../project.h"
 
 // ERRORS
 #define ERROR_USERNAME_TOO_LONG 1

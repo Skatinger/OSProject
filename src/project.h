@@ -1,12 +1,14 @@
 #ifndef PROJECT
-#define  PROJECT
+#define PROJECT
 
 // Used to define some stuff used literally everywhere haha
 
 #define TRUE 1
 #define FALSE 0
 
+#define PORT 50000
 
+#define USE_SSL TRUE
 
 
 #endif

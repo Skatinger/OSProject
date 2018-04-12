@@ -2,6 +2,7 @@
 #define ADT_H
 
 #include <pthread.h>
+#include "../project.h"
 
 /**
  * This specifies the primitives needed for the data structure holding

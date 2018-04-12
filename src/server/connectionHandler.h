@@ -1,8 +1,8 @@
 #ifndef CONNECTIONHANDLER
 #define CONNECTIONHANDLER
 
+#include "../project.h"
 #define MAX_CONNECTIONS 100
-#define PORT 50000
 
 #define BUFFERSIZE 1024
 
@@ -15,7 +15,7 @@ typedef struct connectionInfo {
   char buffer[BUFFERSIZE];   // buffer to read data from this connection
   int socket_descriptor; // the socket for this connection (represented by an int)
   #if USE_SSL == TRUE
-  SSL* tls_descriptor;   // the ssl connection
+    SSL* tls_descriptor;   // the ssl connection
   #endif
 } connectionInfo;
 

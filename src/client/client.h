@@ -1,16 +1,12 @@
 #ifndef HEADER_FILE
 #define HEADER_FILE
 
-
+#include "../project.h"
 
 //functions
 
-/**
- * scans for the input of a user
- */
-void user_input();
+
 
 
 
 #endif
-
