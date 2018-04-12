@@ -4,6 +4,7 @@
 #include "../project.h"
 
 #define MAX_CONNECTION_QUEUE 5
+#define ERR_BUF_SIZE 256
 
 /* Depends on current working dir! */
 #define CERTIFICATE_FILE "crypto/YARcertificate.pem"
