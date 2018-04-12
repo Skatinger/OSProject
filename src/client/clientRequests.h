@@ -16,6 +16,7 @@
 #define DEL_U(U) concat(3, "DEL_U ", U, ";\n")
 #define CHG_U(U1,U2,P) concat(7, "CHG_U ", U1, ":", U2, ":", P, ";\n")
 #define MK_ADMIN(U) concat(3, "MK_ADM ", U, ";\n")
+#define BYE "BYE;\n";
 
 
 

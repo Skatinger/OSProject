@@ -7,8 +7,9 @@
 #define FALSE 0
 
 #define PORT 50000
+#define BUFFER_SIZE 1024
 
-#define USE_SSL TRUE
+#define USE_TLS TRUE
 
 
 #endif

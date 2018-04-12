@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <openssl/ssl.h>
-//#include "/Users/remogeissbuehler/Downloads/openssl-1.0.2o/ssl/ssl.h"
+//#include "/Users/remogeissbuehler/Downloads/openssl-1.0.2o/tls/tls.h"
 #include <openssl/err.h>
 #include "server.h"
 
@@ -37,7 +37,7 @@ int create_socket(int port)
     return s;
 }
 
-void init_openssl()
+void s_init_TLS()
 {
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
@@ -48,7 +48,7 @@ void cleanup_openssl()
     EVP_cleanup();
 }
 
-SSL_CTX *create_context()
+SSL_CTX *s_create_TLS_context()
 {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
@@ -86,8 +86,8 @@ int main(int argc, char **argv)
     int sock;
     SSL_CTX *ctx;
 
-    init_openssl();
-    ctx = create_context();
+    s_init_TLS();
+    ctx = s_create_TLS_context();
 
     configure_context(ctx);
 
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     while(1) {
         struct sockaddr_in addr;
         uint len = sizeof(addr);
-        SSL *ssl;
+        SSL *tls;
         const char reply[] = "test\n";
 
         int client = accept(sock, (struct sockaddr*)&addr, &len);
@@ -106,17 +106,17 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
 
-        ssl = SSL_new(ctx);
-        SSL_set_fd(ssl, client);
+        tls = SSL_new(ctx);
+        SSL_set_fd(tls, client);
 
-        if (SSL_accept(ssl) <= 0) {
+        if (SSL_accept(tls) <= 0) {
             ERR_print_errors_fp(stderr);
         }
         else {
-            SSL_write(ssl, reply, strlen(reply));
+            SSL_write(tls, reply, strlen(reply));
         }
 
-        SSL_free(ssl);
+        SSL_free(tls);
         close(client);
     }
 

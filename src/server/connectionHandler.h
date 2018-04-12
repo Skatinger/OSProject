@@ -4,20 +4,19 @@
 #include "../project.h"
 #define MAX_CONNECTIONS 100
 
-#define BUFFERSIZE 1024
 
-#if USE_SSL == TRUE
+#if USE_TLS == TRUE
   #include <openssl/ssl.h>
 #endif
 
-typedef struct connectionInfo {
+typedef struct connection_t {
   int data_length;                // length of read data
-  char buffer[BUFFERSIZE];   // buffer to read data from this connection
+  char buffer[BUFFER_SIZE];   // buffer to read data from this connection
   int socket_descriptor; // the socket for this connection (represented by an int)
-  #if USE_SSL == TRUE
-    SSL* tls_descriptor;   // the ssl connection
+  #if USE_TLS == TRUE
+    SSL* TLS_descriptor;   // the tls connection
   #endif
-} connectionInfo;
+} connection_t;
 
 /*
 Basics: Every connection has its own thread.
@@ -31,14 +30,14 @@ Basics: Every connection has its own thread.
 void* accept_new_connections(void* arg);
 /**
  * Used in a pthread to handle one specific TCP connection.
- * @param arg a connectionInfo struct (cast to void*)
+ * @param arg a connection_t struct (cast to void*)
  */
-void* handleConnection(void* arg);
+void* handle_connection(void* arg);
 
 /**
  * Used in a pthread to handle a TLS connection.
- * @param arg a connectionInfo struct (cast to void*)
+ * @param arg a connection_t struct (cast to void*)
  */
-void* handleTLSConnection(void* arg);
+void* handle_TLS_connection(void* arg);
 
 #endif

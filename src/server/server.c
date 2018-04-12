@@ -11,7 +11,7 @@
 #include "server.h"
 #include "../project.h"
 
-#if USE_SSL == TRUE
+#if USE_TLS == TRUE
   #include <openssl/ssl.h>
   #include <openssl/err.h>
 #endif
@@ -21,7 +21,7 @@
 // the address of this server (based on its real address)
 struct sockaddr_in serverAddress;
 
-struct sockaddr_in makeServerAddress(int port) {
+struct sockaddr_in s_init_address(int port) {
   struct sockaddr_in* server;
 
   server = malloc(sizeof(struct sockaddr_in));
@@ -36,7 +36,7 @@ struct sockaddr_in makeServerAddress(int port) {
   return *server;
 }
 
-int createServerSocket(int port) {
+int s_create_socket(int port) {
     int socket_descriptor = 0;
 
     // create a new socket and store its id into the var socket_descriptor
@@ -47,7 +47,7 @@ int createServerSocket(int port) {
         exit(EXIT_FAILURE);
     }
     // init the address of this server
-    serverAddress = makeServerAddress(port);
+    serverAddress = s_init_address(port);
 
     // try to bind the socket to this address
     if (bind(socket_descriptor, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
@@ -86,24 +86,24 @@ int s_connect(int socket_descriptor) {
   }
 }
 
-int s_read(connectionInfo* cinf) {
+int s_read(connection_t* con_info) {
   // initialising the buffer with zeros
-  bzero(cinf->buffer, BUFFERSIZE);
+  bzero(con_info->buffer, BUFFER_SIZE);
 
   //printf("hello from s_read\n");
 
   // reading the transmitted data into the buffer
-  cinf->data_length = read(cinf->socket_descriptor, cinf->buffer, BUFFERSIZE -1);
-  if (cinf->data_length < 0) {
+  con_info->data_length = read(con_info->socket_descriptor, con_info->buffer, BUFFER_SIZE -1);
+  if (con_info->data_length < 0) {
     perror("Unable to read data from client.");
-    return cinf->data_length;
+    return con_info->data_length;
   } else {
     return 0;
   }
 }
 
-int s_write(connectionInfo* cinf, char message[BUFFERSIZE]) {
-  int n = write(cinf->socket_descriptor, message, strlen(message));
+int s_write(connection_t* con_info, char message[BUFFER_SIZE]) {
+  int n = write(con_info->socket_descriptor, message, strlen(message));
   if (n < 0) {
     perror("Unable to write data to client");
     return n;
@@ -115,18 +115,27 @@ int s_write(connectionInfo* cinf, char message[BUFFERSIZE]) {
 // ===== SSL PART FOR FUTURE =========
 // partly inspired by a web tutorial :)
 
-#if USE_SSL == TRUE
+#if USE_TLS == TRUE
 
-int s_connectTLS(int connection_descriptor, SSL_CTX* ctx, SSL** ssl_to_store) {
-  SSL* ssl;
+void s_init_TLS() {
+  // load stuff
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+}
+
+int s_connect_TLS(int connection_descriptor, SSL** tls_to_store) {
+  SSL_CTX* ctx = s_create_TLS_context();
+
+  SSL* tls;
   // create a new SSL connection info based on the context
-  *ssl_to_store = SSL_new(ctx);
+  *tls_to_store = SSL_new(ctx);
   // and 'bind' it to the existing TCP connection socket (an already accepted
   // conncetion of a client!)
-  SSL_set_fd(*ssl_to_store, connection_descriptor);
+  SSL_set_fd(*tls_to_store, connection_descriptor);
   int err;
-  if ((err = SSL_accept(*ssl_to_store)) <= 0) {
-    printf("%s\n", ERR_error_string(SSL_get_error(*ssl_to_store, err), NULL));
+  if ((err = SSL_accept(*tls_to_store)) <= 0) {
+    printf("%s\n", ERR_error_string(SSL_get_error(*tls_to_store, err), NULL));
     char buf[ERR_BUF_SIZE];
     while ((err = ERR_get_error()) != 0) {
       ERR_error_string_n(err, buf, sizeof(buf));
@@ -139,14 +148,14 @@ int s_connectTLS(int connection_descriptor, SSL_CTX* ctx, SSL** ssl_to_store) {
   }
 }
 
-int s_readTLS(connectionInfo* cinf) {
+int s_read_TLS(connection_t* con_info) {
   // initialising the buffer with zeros
-  bzero(cinf->buffer, BUFFERSIZE);
+  bzero(con_info->buffer, BUFFER_SIZE);
 
 
   // reading the transmitted data into the buffer
-  cinf->data_length = SSL_read(cinf->tls_descriptor, cinf->buffer, BUFFERSIZE -1);
-  if (cinf->data_length < 0) {
+  con_info->data_length = SSL_read(con_info->TLS_descriptor, con_info->buffer, BUFFER_SIZE -1);
+  if (con_info->data_length < 0) {
     int err;
     char buf[ERR_BUF_SIZE];
     perror("Unable to read data from TLS client.");
@@ -156,15 +165,15 @@ int s_readTLS(connectionInfo* cinf) {
       ERR_error_string_n(err, buf, sizeof(buf));
       printf("*** %s\n", buf);
     }
-    return cinf->data_length;
+    return con_info->data_length;
   } else {
     return 0;
   }
 }
 
 
-int s_writeTLS(connectionInfo* cinf, char message[BUFFERSIZE]) {
-  int n = SSL_write(cinf->tls_descriptor, message, strlen(message));
+int s_write_TLS(connection_t* con_info, char message[BUFFER_SIZE]) {
+  int n = SSL_write(con_info->TLS_descriptor, message, strlen(message));
   if (n <= 0) {
     int err;
     char buf[ERR_BUF_SIZE];
@@ -182,18 +191,11 @@ int s_writeTLS(connectionInfo* cinf, char message[BUFFERSIZE]) {
 }
 
 
-void init_openssl() {
-  // load stuff
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_ssl_algorithms();
-}
-
 void cleanup_openssl() {
     EVP_cleanup();
 }
 
-SSL_CTX *create_context() {
+SSL_CTX *s_create_TLS_context() {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 

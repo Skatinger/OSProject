@@ -17,19 +17,20 @@
 #include "connectionHandler.h"
 
 /**
- * Returns the descriptor for a new server socket.
+ * Returns the descriptor for a new server socket (Basically an ID for this
+ * socket).
  * @param  port the port to open
  * @return   socket descriptor
  */
-int createServerSocket(int port);
+int s_create_socket(int port);
 
 /**
  * Make a struct containing the server address (local address,
  * port) etc.
  * @param  port the port to pen
- * @return      the struct containng the address
+ * @return      the struct containing the address
  */
-struct sockaddr_in makeServerAddress(int port);
+struct sockaddr_in s_init_address(int port);
 
 /**
  * Abstraction of the listen primitive. Has the server listen
@@ -54,56 +55,65 @@ int s_connect(int socket);
  * Reads from the connection given in the argument and stores the read STUFF
  * int that buffer. Handles errors (basic).
  * Blocks as long as there is nothing to read.
- * @param  cinf a struct describing the TCP connection
+ * @param  con_info a struct describing the TCP connection
  * @return 0 if successful, other int if not.
  */
-int s_read(connectionInfo* cinf);
+int s_read(connection_t* con_info);
 
 /**
  * Writes to the connection descibed in the argument.
- * @param  cinf the struct with TCP connection info
+ * @param  con_info the struct with TCP connection info
  * @param message: the message to write.
  * @return      0 upon success
  */
-int s_write(connectionInfo* cinf, char message[BUFFERSIZE]);
+int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
 
 // =================================================
 // ============ TLS STUFF FOR future ===============
 // =================================================
 
-#if USE_SSL == TRUE
-/**
- * Abstraction of accepting a connection via TLS. similar to s_connect.
- * @param  connection_descriptor descriptor of a regular TCP socket connection as
- *                               created by s_connect().
- * @param  ctx                   the context of the TSL connection.
- * @return                       a new TLS connection data struct.
- */
-//SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx);
+#if USE_TLS == TRUE
+  /**
+   * Abstraction of accepting a connection via TLS. similar to s_connect. Sets
+   * up the context of an TLS connection and
+   * @param  connection_descriptor descriptor of a regular TCP socket connection as
+   *                               created by s_connect().
+   * @return                       a new TLS connection data struct.
+   */
+  //SSL* s_connect_TLS(int connection_descriptor, SSL_CTX* ctx);
 
-int s_connectTLS(int connection_descriptor, SSL_CTX* ctx, SSL** ssl_to_store);
+  int s_connect_TLS(int connection_descriptor, SSL** tls_to_store);
 
-/**
- * Reads from the (TLS) connection given in the argument and stores the read STUFF
- * in that buffer. Handles errors (basic).
- * Blocks as long as there is nothing to read.
- * @param  cinf a struct describing the TCP / TLS connection
- * @return 0 if successful, other int if not.
- */
-int s_readTLS(connectionInfo* cinf);
+  /**
+   * Reads from the (TLS) connection given in the argument and stores the read STUFF
+   * in that buffer. Handles errors (basic).
+   * Blocks as long as there is nothing to read.
+   * @param  con_info a struct describing the TCP / TLS connection
+   * @return 0 if successful, other int if not.
+   */
+  int s_read_TLS(connection_t* con_info);
 
-int s_writeTLS(connectionInfo* cinf, char message[BUFFERSIZE]);
+  /**
+   * Writes to the TLS connection given in the argument. Handles errors.
+   * @param  con_info    [description]
+   * @param  message [description]
+   * @return         [description]
+   */
+  int s_write_TLS(connection_t* con_info, char message[BUFFER_SIZE]);
 
-/**
- * initialise everything needed for a TLS connection.
- */
-void init_openssl();
+  /**
+   * initialise everything needed for a TLS connection.
+   */
+  void s_init_TLS();
 
-/**
- * Creates and configures the needed context for a TLS connection based on the given data.
- * @return the context
- */
-SSL_CTX* create_context();
+  /**
+   * Auxiliary function used to set up a TLS connection.
+   * Creates and configures the needed context for a TLS connection based on the
+   * given data.
+   * The context will then be used to create a new TLS connection.
+   * @return the context
+   */
+  SSL_CTX* s_create_TLS_context();
 #endif
 
 

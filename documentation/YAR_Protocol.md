@@ -92,3 +92,7 @@ Used to update the credentials of a user. Again, the server must check that the 
 ## MK_ADM
 Used to give a user admin rights. May only be called by an existing admin, the server must check so.
 *Usage*: `MK_ADM <username>;`
+
+## BYE
+Used to end the connection. Should be called when a either server or client exits.
+*Usage*: `BYE;`

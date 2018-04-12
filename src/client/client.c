@@ -13,7 +13,7 @@
 #include "../server/serverResponses.h"
 
 
-#if USE_SSL == TRUE
+#if USE_TLS == TRUE
   #include <openssl/ssl.h>
   #include <openssl/err.h>
 #endif
@@ -21,7 +21,7 @@
 void handleFailure(char* msg) {printf("failure: %s\n", msg);}
 
 void init_openssl_library() {
-  #if USE_SSL == TRUE
+  #if USE_TLS == TRUE
   (void)SSL_library_init();
 
   SSL_load_error_strings();
@@ -68,11 +68,11 @@ int main(int argc, char *argv[]) {
     printf("connected socket\n");
 
 //============ TLS test part =======================
-    #if USE_SSL == TRUE
+    #if USE_TLS == TRUE
 
       SSL_CTX* ctx = NULL;
       BIO *web = NULL, *out = NULL;
-      SSL *ssl = NULL;
+      SSL *tls = NULL;
 
       init_openssl_library();
 
@@ -97,12 +97,12 @@ int main(int argc, char *argv[]) {
       // res = SSL_CTX_load_verify_locations(ctx, "crypto/Fake_CA/ca.crt", NULL);
       // if(!(1 == res)) handleFailure("verify locations");
 
-      ssl=SSL_new(ctx);
+      tls=SSL_new(ctx);
 
-      SSL_set_fd(ssl, sockfd);
-      printf("joined sock with ssl\n");
-      err = SSL_connect(ssl);
-      if (err < 1) {printf("ssl connecting failed %d.\n", err);}
+      SSL_set_fd(tls, sockfd);
+      printf("joined sock with tls\n");
+      err = SSL_connect(tls);
+      if (err < 1) {printf("tls connecting failed %d.\n", err);}
     #endif
 
     printf("connected\n");
@@ -116,9 +116,9 @@ int main(int argc, char *argv[]) {
     sleep(5); // wait until message is sent to give some time to the testing
                // programmer
     printf("Wrting %s\n", message);
-    #if USE_SSL == TRUE
-      if (SSL_write(ssl, message, strlen(message)) <= 0) {
-        printf("sending ssl failed.\n");
+    #if USE_TLS == TRUE
+      if (SSL_write(tls, message, strlen(message)) <= 0) {
+        printf("sending tls failed.\n");
       }
     #else
       if (write(sockfd, message, strlen(message)) <0) {
@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
     #endif
 
 
-    #if USE_SSL == TRUE
-      n = SSL_read(ssl, recvBuff, sizeof(recvBuff) - 1);
+    #if USE_TLS == TRUE
+      n = SSL_read(tls, recvBuff, sizeof(recvBuff) - 1);
     #else
       n = read(sockfd, recvBuff, sizeof(recvBuff)-1);
     #endif

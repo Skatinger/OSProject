@@ -54,6 +54,12 @@
 #define ERROR_NO_ADMIN(U) concatCode(ERROR_NO_ADMIN, 3, " USER ", U, " HAS NO ADMIN RIGHTS\n");
 #define ERROR_SERVER_FULL concatCode(ERROR_SERVER_FULL_NR, 1, " SERVER IS FULL\n")
 
+/* ============= OTHERS ======================== */
+#ifndef BYE
+#define BYE "BYE;\n"
+#endif
+
+
 char* concat(int num, ...) {
   va_list vlist;
   va_start(vlist, num);

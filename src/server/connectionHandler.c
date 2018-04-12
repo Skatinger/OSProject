@@ -7,7 +7,7 @@
 #include "connectionHandler.h"
 #include "serverResponses.h"
 
-#if USE_SSL == TRUE
+#if USE_TLS == TRUE
   #include <openssl/ssl.h>
   #include <openssl/err.h>
 #endif
@@ -27,7 +27,7 @@ int main(int argc, char const *argv[]) {
   char c;
 
 
-  socket_d = createServerSocket(PORT);
+  socket_d = s_create_socket(PORT);
   s_listen(socket_d);
   pthread_t pid;
 
@@ -58,28 +58,27 @@ void* accept_new_connections(void* arg) {
     void** ret;
     connection_descriptor = s_connect(socket_d);
     printf("connected to client\n");
-    connectionInfo* cinf = malloc(sizeof(connectionInfo));
-    cinf->socket_descriptor = connection_descriptor;
+    connection_t* con_info = malloc(sizeof(connection_t));
+    con_info->socket_descriptor = connection_descriptor;
     // initialising the buffer with zeros
-    //bzero(cinf->buffer, BUFFERSIZE);
-    char buf[BUFFERSIZE];
-    bzero(buf, BUFFERSIZE);
-    strcpy(cinf->buffer, buf);
-    cinf->data_length = 0;
+    //bzero(con_info->buffer, BUFFER_SIZE);
+    char buf[BUFFER_SIZE];
+    bzero(buf, BUFFER_SIZE);
+    strcpy(con_info->buffer, buf);
+    con_info->data_length = 0;
 
-    printf("created cinf\n");
-    printf("socket: %d\n", cinf->socket_descriptor);
-    //printf("buffer: %s\n", cinf->buffer);
-    printf("buffer: %s\n", cinf->buffer);
-    #if USE_SSL
-      SSL* ssl = NULL;
-      init_openssl();
-      SSL_CTX* context = create_context();
-      s_connectTLS(connection_descriptor, context, &ssl);
-      cinf->tls_descriptor = ssl;
-      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handleTLSConnection, (void*)cinf));
+    printf("created con_info\n");
+    printf("socket: %d\n", con_info->socket_descriptor);
+    //printf("buffer: %s\n", con_info->buffer);
+    printf("buffer: %s\n", con_info->buffer);
+    #if USE_TLS
+      SSL* tls = NULL;
+      s_init_TLS();
+      s_connect_TLS(connection_descriptor, &tls);
+      con_info->TLS_descriptor = tls;
+      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handle_TLS_connection, (void*)con_info));
     #else
-      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handleConnection, (void*)cinf));
+      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handle_connection, (void*)con_info));
     #endif
   }
 }
@@ -89,32 +88,32 @@ char* getFirstParam(char* msg);
 char* getSecondParam(char* msg);
 
 
-void* handleConnection(void* arg) {
+void* handle_connection(void* arg) {
   // casting back to struct holding the data
-  connectionInfo* cinf = (connectionInfo*) arg;
+  connection_t* con_info = (connection_t*) arg;
   //printf("hello from 'child' thread\n");
-  int r = s_read(cinf);
-  if (r == 0) printf("Reading from socket %d:\n%s\n", cinf->socket_descriptor, cinf->buffer);
+  int r = s_read(con_info);
+  if (r == 0) printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
 
-  char* username = getFirstParam(cinf->buffer);
-  //char* password = getSecondParam(cinf->buffer);
-  s_write(cinf, SUCCESS_LOGIN(username));
+  char* username = getFirstParam(con_info->buffer);
+  //char* password = getSecondParam(con_info->buffer);
+  s_write(con_info, SUCCESS_LOGIN(username));
   // if that test was successful, kill the program
   //pthread_cancel(mainThread);
   return NULL;
 }
 
-#if USE_SSL == TRUE
-  void* handleTLSConnection(void* arg) {
+#if USE_TLS == TRUE
+  void* handle_TLS_connection(void* arg) {
 
-    connectionInfo* cinf = (connectionInfo*) arg;
+    connection_t* con_info = (connection_t*) arg;
 
-    int r = s_readTLS(cinf);
-    if (r == 0) printf("Reading from socket %d:\n%s\n", cinf->socket_descriptor, cinf->buffer);
+    int r = s_read_TLS(con_info);
+    if (r == 0) printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
 
-    char* username = getFirstParam(cinf->buffer);
-    //char* password = getSecondParam(cinf->buffer);
-    s_writeTLS(cinf, SUCCESS_LOGIN(username));
+    char* username = getFirstParam(con_info->buffer);
+    //char* password = getSecondParam(con_info->buffer);
+    s_write_TLS(con_info, SUCCESS_LOGIN(username));
     // if that test was successful, kill the program
     //pthread_cancel(mainThread);
     return NULL;
@@ -127,7 +126,7 @@ void* handleConnection(void* arg) {
 // are more for testing purposes.
 //
 char* getFirstParam(char* msg) {
-  static char param[BUFFERSIZE];
+  static char param[BUFFER_SIZE];
   int i, n, k;
   i = 0; n = strlen(msg);
 
@@ -144,7 +143,7 @@ char* getFirstParam(char* msg) {
 }
 
 char* getSecondParam(char* msg) {
-  static char param[BUFFERSIZE];
+  static char param[BUFFER_SIZE];
   int i, n, k;
   i = 0; n = strlen(msg);
 
@@ -157,7 +156,7 @@ char* getSecondParam(char* msg) {
 }
 
 char* getThirdParam(char* msg) {
-  static char param[BUFFERSIZE];
+  static char param[BUFFER_SIZE];
   int i, n, k;
   i = 0; n = strlen(msg);
 
