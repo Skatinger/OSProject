@@ -1,5 +1,3 @@
-#define USE_SSL TRUE
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,7 +11,7 @@
 #include "server.h"
 #include "../project.h"
 
-#if USE_SSL
+#if USE_SSL == TRUE
   #include <openssl/ssl.h>
   #include <openssl/err.h>
 #endif
@@ -117,7 +115,7 @@ int s_write(connectionInfo* cinf, char message[BUFFERSIZE]) {
 // ===== SSL PART FOR FUTURE =========
 // partly inspired by a web tutorial :)
 
-#if USE_SSL
+#if USE_SSL == TRUE
 // SSL* s_connectTLS(int connection_descriptor, SSL_CTX* ctx) {
 //   SSL* ssl;
 //   // create a new SSL connection info based on the context

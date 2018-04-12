@@ -1,5 +1,3 @@
-#define USE_SSL TRUE
-
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -13,7 +11,6 @@
 #include "client.h"
 #include "clientRequests.h"
 #include "../server/serverResponses.h"
-#include "../project.h"
 
 
 #if USE_SSL == TRUE

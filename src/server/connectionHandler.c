@@ -1,5 +1,3 @@
-#define USE_SSL TRUE
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,10 +5,9 @@
 #include <string.h>
 #include "server.h"
 #include "connectionHandler.h"
-#include "../project.h"
 #include "serverResponses.h"
 
-#if USE_SSL
+#if USE_SSL == TRUE
   #include <openssl/ssl.h>
   #include <openssl/err.h>
 #endif
@@ -107,7 +104,7 @@ void* handleConnection(void* arg) {
   return NULL;
 }
 
-#if USE_SSL
+#if USE_SSL == TRUE
   void* handleTLSConnection(void* arg) {
 
     connectionInfo* cinf = (connectionInfo*) arg;
