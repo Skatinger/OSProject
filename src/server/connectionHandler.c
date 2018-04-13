@@ -36,7 +36,7 @@ int main(int argc, char const *argv[]) {
   pthread_create(&pid, NULL, accept_new_connections, (void *)&socket_d);
 
   // mechanism to stop the server
-  scanf("%c\n", &c);
+  scanf("%c", &c);
   if (c == 'c') {
     printf("Stopping.\n");
     exit(0);
@@ -67,10 +67,7 @@ void* accept_new_connections(void* arg) {
     strcpy(con_info->buffer, buf);
     con_info->data_length = 0;
 
-    printf("created con_info\n");
     printf("socket: %d\n", con_info->socket_descriptor);
-    //printf("buffer: %s\n", con_info->buffer);
-    printf("buffer: %s\n", con_info->buffer);
     #if USE_TLS
       SSL* tls = NULL;
       s_init_TLS();
