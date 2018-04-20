@@ -12,7 +12,7 @@ int hashFunc (KVS *t, char *key) {
     for (h = 0; *key != '\0'; key++) {
         h = (ALPHABET_SIZE * h + *key) % t->size;
     }
-    printf("hashvalue of %s: %d\n", tmp, h);
+    //printf("hashvalue of %s: %d\n", tmp, h);
     return h;
 }
 
@@ -31,7 +31,7 @@ int reHash (KVS *t, int index) {
 //
 //    return 1 + ret;
 //    //return 1;
-    
+
     int ret = 1;
     int val = index;
     while (val > 0) {
@@ -43,41 +43,43 @@ int reHash (KVS *t, int index) {
 /* ====================== */
 
 /* == KVS-access-methods == */
-int set(KVS *t, char* key, char* value) {
+int set(KVS *t, char* key, void* value) {
+  if (get(t, key) != NULL) {return KEY_IN_USE_ERROR;}
     if(t->load == t->size) return STORAGE_FULL_ERROR;//table is full
     int index = hashFunc(t, key);
     //TODO: FIX (gets caught in loop)
     //printf("index: %d has value %s\n", index, t->table[index].key);
-    
+
     while(t->table[index].key != NULL){
         index += reHash(t, index);
         index = index % t->size;
     }
     t->table[index].key = key;
     t->table[index].value = value;
-    printf("Set key: %s, and value: %s\n", t->table[index].key, t->table[index].value);
+    //printf("Set key: %s, and value: %s\n", t->table[index].key, t->table[index].value);
     t->load++;
     return SUCCESS;
 }
 
-char* get(KVS *t, char *key) {
+void* get(KVS *t, char *key) {
     int index = hashFunc(t, key);
-    
+
     // store first index to detect cycles
     int tmp = index;
-    
+
     while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
         index += reHash(t, index);
         index = index % t->size;
         if (index == tmp) {
             // back at beginning, stop
-            return KEY_NOT_FOUND_ERRORmsg;
+            return NULL;
         }
     }
-    return t->table[index].key!=NULL ? t->table[index].value : KEY_NOT_FOUND_ERRORmsg;
+    return t->table[index].key!=NULL ? t->table[index].value : NULL;
 }
+
 //TODO throws segFault
-char* del(KVS *t, char *key) {
+void* del(KVS *t, char *key) {
     if (t->load == 0) return STORAGE_EMPTY_ERROR;
     int index = hashFunc(t, key);
     int tmp = index;
@@ -85,21 +87,21 @@ char* del(KVS *t, char *key) {
         index += reHash(t, index);
         index = index % t->size;
         if (index == tmp) {
-            return KEY_NOT_FOUND_ERRORmsg;
+            return (void*)KEY_NOT_FOUND_ERRORmsg;
         }
     }
-    char* res = t->table[index].key!=NULL ? t->table[index].value : KEY_NOT_FOUND_ERRORmsg;
+    void* res = t->table[index].key!=NULL ? t->table[index].value : NULL;
     t->table[index].value = NULL;
     t->table[index].key = NULL;
     t->load--;
     return res;
 }
 
-int replace(KVS* t, char* key, char* value){
+int replace(KVS* t, char* key, void* value){
     //TODO
     int index = hashFunc(t, key);
     int tmp = index;
-    
+
     while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
         index += reHash(t, index);
         index = index % t->size;
@@ -113,8 +115,8 @@ int replace(KVS* t, char* key, char* value){
     } else {
         return KEY_NOT_FOUND_ERROR;
     }
-    
-    
+
+
 }
 /* ====================== */
 
@@ -154,11 +156,13 @@ void destroy(KVS* store){
 float loadfactor (KVS *store){
     return (float) store->load/ (float) store->size;
 }
+
+void printKVS(KVS* store) {
+  for (int i = 0; i < store->size; i++) {
+    if (store->table[i].value == NULL) continue;
+    printf("i = %d : key = %s value = %s \n", i, store->table[i].key, (char*) store->table[i].value);
+  }
+}
 /* ====================== */
 
 /* ==== ERROR HANDLING === */
-
-
-
-
-

@@ -2,7 +2,7 @@
 #define CONNECTIONHANDLER
 
 #include "../project.h"
-#define MAX_CONNECTIONS 100
+
 #define MAX_IDLE 7200 // 2h
 #define RETRIAL_TIME 10
 

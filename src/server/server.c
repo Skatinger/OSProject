@@ -251,7 +251,7 @@ static void s_TLS_error(char* error_msg, int exit_program) {
 
 void s_end_TLS(connection_t* con_info) {
   close(con_info->socket_descriptor);
-  EVP_cleanup();
+  //EVP_cleanup();
   free(con_info);
 }
 

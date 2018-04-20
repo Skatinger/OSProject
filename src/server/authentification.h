@@ -10,6 +10,8 @@
 #define SALT_LENGTH 64
 #define ALPHABET_SIZE 26
 
+#define ADMIN 0
+
 
 
 #define SHA_512_DIGEST_SIZE 64
@@ -93,7 +95,7 @@ user_t* newUser(char* username, char* password, int rights);
  * @return    0 if successful,
  *            1 if error
  */
-int addUser(user_db_t* db, user_t* user);
+int addUser(user_t* user);
 
 /**
  * Find a user based on their unique id in the database.
@@ -108,7 +110,7 @@ user_t* getUserById(int id);
  * @param  username of the desired user
  * @return a pointer to the user info struct
  */
-user_t* getUserByName(user_db_t* db, char* username);
+user_t* getUserByName(char* username);
 
 /**
  * Checks username and password with the database to determine acces rights.
@@ -117,7 +119,7 @@ user_t* getUserByName(user_db_t* db, char* username);
  * @param  password string with the password to be checked
  * @return          FALSE if credentials are flase, TRUE if they are correct.
  */
-int checkCredentials(user_db_t* db, char* username, char* password);
+int checkCredentials(char* username, char* password);
 
 /**
  * Determines if the user has access // what kind of access

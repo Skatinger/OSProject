@@ -11,6 +11,7 @@
 #include "../utils/logger.h"
 #include "../utils/string_stuff.h"
 #include "access_handler.h"
+#include "authentification.h"
 
 
 #if USE_TLS == TRUE
@@ -28,21 +29,31 @@
 //
 static int t_counter;
 static pthread_mutex_t counter_lock;
+static pthread_key_t USERNAME;
 
 int main(int argc, char const *argv[]) {
   char c;
   pthread_t pid;
+  char root_pw[100];
+  user_t* root;
 
   s_init_TLS();
   pthread_mutex_init(&counter_lock, NULL);
+
+  initUserDB();
+  get_password("Enter a password for the root account please\n", root_pw);
+  printf("Thanks.\n");
+  root = newUser("root", root_pw, ADMIN);
+  addUser(root);
 
   // new thread that waits for connections
   pthread_create(&pid, NULL, accept_new_connections, NULL);
 
   // mechanism to stop the server
-  scanf("%c", &c);
+  c = getchar();
   if (c == 'c') {
     printf("Stopping.\n");
+    end_access_handler();
     exit(0);
   }
 
@@ -52,6 +63,14 @@ int main(int argc, char const *argv[]) {
 void* accept_new_connections(void* arg) {
   t_counter = 0; // counting
   pthread_t tid;
+
+  logger("Accepting connections now.\n", INFO);
+
+  // this key can be used to give each thread a 'global' variable that is
+  // specific to the thread and cannot be used by any other.
+  pthread_key_create(&USERNAME, NULL);
+  logger("Initialising access handler\n", INFO);
+  init_access_handler(&USERNAME);
 
   // entering loop
   while(TRUE) {
@@ -139,6 +158,14 @@ static char* parse_message(char* msg) {
     return writer(getFirstParam(msg), getSecondParam(msg), UPD);
   } else if (!strcmp(cmd, "BYE")) {
     return BYE;
+  } else if (!strcmp(cmd, "LOGIN")) {
+    char* username = getFirstParam(msg);
+    char* password = getSecondParam(msg);
+    pthread_setspecific(USERNAME, (void*) username);
+    int n = login(password);
+    //free(password);
+
+    return n == 0 ? SUCCESS_LOGIN(username) : ERROR_ACCESS_DENIED(username);
   } else {
     logger("Unknown commad to parse:", INFO);
     logger(cmd, INFO);
@@ -166,7 +193,7 @@ static char* parse_message(char* msg) {
       last_active = time(NULL);
 
       if (r == 0) {
-        printf("Reading from socket %d:", con_info->socket_descriptor);
+        printf("Reading from socket %d:\n", con_info->socket_descriptor);
         logger(con_info->buffer, INFO);
         logger("Replying the following:", INFO);
 
@@ -187,6 +214,9 @@ static char* parse_message(char* msg) {
 
     // ending the conenction here
     s_end_TLS(con_info);
+    pthread_mutex_lock(&counter_lock);
+    t_counter--;
+    pthread_mutex_unlock(&counter_lock);
     pthread_exit(NULL);
 
   }

@@ -8,8 +8,7 @@
 int main(int argc, char const *argv[]) {
   initUserHandler();
 
- user_db_t* db = initUserDB();
- user_db_t* seconDB = initUserDB();
+  user_db_t* db = initUserDB();
 
 
  printf("Adding a few  users to both dbs.\n");
@@ -19,12 +18,11 @@ int main(int argc, char const *argv[]) {
  user_t* third = newUser("Roger Federer", "!08jdhsl@*)", 2);
  user_t* last = newUser("user17", "charliecharli", 0);
 
- addUser(db, me);
- addUser(db, third);
- addUser(db, last);
- addUser(seconDB, me);
- addUser(seconDB, secondUser);
- addUser(seconDB, secondsecondUser);
+ addUser(me);
+ addUser(third);
+ addUser(last);
+ addUser(secondUser);
+ addUser(secondsecondUser);
 
 
  //printf("Printing all the user info\n");
@@ -37,31 +35,33 @@ int main(int argc, char const *argv[]) {
  for (int i = 0; i < db->count; i++) {
    printUser(&db->table[i]);
  }
- printf("and of the second\n");
- for (int i = 0; i < seconDB->count; i++) {
-   printUser(&seconDB->table[i]);
- }
+
 
  printf("Checking credentials\n");
  printf("Checking username \"chucknorris\" with password \"abcd\" in db1\n");
- printf("%d\n", checkCredentials(db, "chucknorris", "abcd"));
+ printf("%d\n", checkCredentials("chucknorris", "abcd"));
 
  printf("Checking username \"Remo\" with password \"LoLoLoL\" in db1\n");
- printf("%d\n", checkCredentials(db, "Remo", "LoLoLoL"));
+ printf("%d\n", checkCredentials("Remo", "LoLoLoL"));
 
  printf("Checking username \"Remo\" with password \"SehrKomplexes_pw67#*\" in db1\n");
- printf("%d\n", checkCredentials(db, "Remo", "SehrKomplexes_pw67#*"));
+ printf("%d\n", checkCredentials("Remo", "SehrKomplexes_pw67#*"));
 
  printf("\nNow changing the number of iterations to 200 000\n");
  updateIterationCount(200000);
 
  printf("Logging in username \"Remo\", which updates his iteration info\n");
- printf("%d\n", checkCredentials(db, "Remo", "SehrKomplexes_pw67#*"));
+ printf("%d\n", checkCredentials("Remo", "SehrKomplexes_pw67#*"));
  printf("See if that worked\n");
  printUser(&db->table[0]);
 
  printf("Now trying to log in again with new iter\n");
- printf("%d\n", checkCredentials(db, "Remo", "SehrKomplexes_pw67#*"));
+ printf("%d\n", checkCredentials("Remo", "SehrKomplexes_pw67#*"));
+
+printf("Trying to get user by name (\"Remo\")\n");
+user_t* remo = getUserByName("Remo");
+
+printUser(remo);
 
  exit(0);
   return 0;

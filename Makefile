@@ -54,8 +54,8 @@ all: build/client_test  build/kvs_test build/auth_test build/connectionH build/s
 #	gcc -o build/server -lssl -lcrypto build/obj/server.o
 
 # attention: this is machine-dependant (depends on openssl installation)
-build/connectionH: src/server/connectionHandler.c src/server/server.c src/server/server.h src/utils/logger.c src/server/access_handler.c src/utils/string_stuff.c
-	gcc -o build/connectionH src/utils/string_stuff.c src/utils/logger.c  src/server/access_handler.c src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+build/connectionH: src/server/connectionHandler.c src/server/server.c src/server/server.h src/utils/logger.c build/obj/kvs.o src/server/access_handler.c src/utils/string_stuff.c src/server/authentification.c
+	gcc -o build/connectionH src/server/authentification.c src/utils/string_stuff.c src/utils/logger.c build/obj/kvs.o src/server/access_handler.c src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/kvs: build/obj/kvs.o src/server/keyvalue.h
 #	gcc -o build/kvs build/obj/kvs.o

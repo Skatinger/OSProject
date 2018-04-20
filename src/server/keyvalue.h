@@ -9,6 +9,7 @@
 #define SUCCESS 0
 #define STORAGE_FULL_ERROR 1
 #define KEY_NOT_FOUND_ERROR 2
+#define KEY_IN_USE_ERROR 3
 #define STORAGE_EMPTY_ERROR "Deleting failed -- storage is empty\n"
 #define KEY_NOT_FOUND_ERRORmsg "The desired key wasn't found\n"
 
@@ -18,7 +19,7 @@
 /* ==== structs =====*/
 typedef struct keyValuePair {
     char *key;
-    char *value;
+    void *value;
     struct keyValuePair *next;
 } keyValuePair;
 
@@ -67,7 +68,7 @@ void destroy(KVS* store);
  * @param <c>char* value</> value of the pair to be inserted
  * @return <c>int</c> 0 if error occured, 1 otherwise
  */
-int set(KVS* store, char* key, char* value);
+int set(KVS* store, char* key, void* value);
 
 /**
  * searches for a given key and its value
@@ -75,7 +76,7 @@ int set(KVS* store, char* key, char* value);
  * @param <c>char* key</c> the key to be searched for
  * @return <c>char*</c> the found key or an empty string
  */
-char* get(KVS* store, char* key);
+void* get(KVS* store, char* key);
 
 /**
  * deletes a key-value pair from a store
@@ -83,7 +84,7 @@ char* get(KVS* store, char* key);
  * @param <c>char* key</c> the key of the pair to be deleted
  * @return <c>char*</c> the deleted value
  */
-char* del(KVS* store, char* key);
+void* del(KVS* store, char* key);
 
 /**
  * replaces a value with another value. This does change the key as well
@@ -92,7 +93,7 @@ char* del(KVS* store, char* key);
  * @param <c>char* value</c> the value to be inserted in place of the previous
  * @return <c>int</c> 0 if error occured, 1 otherwise
  */
-int replace(KVS* store, char* key, char* value);
+int replace(KVS* store, char* key, void* value);
 
 /**
  * calculates the load of a key-value store
@@ -100,6 +101,8 @@ int replace(KVS* store, char* key, char* value);
  * @return <c>float</c> the loadfactor of the key-value store
  */
 float loadfactor (KVS *store);
+
+void printKVS(KVS* store);
 
 #endif
 

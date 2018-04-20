@@ -10,6 +10,7 @@
 
 
 int ITERATION_COUNT = 100000;
+user_db_t* db;
 // int global_count;
 // pthread_mutex_t* counterLock;
 
@@ -19,7 +20,7 @@ void initUserHandler() {
 }
 
 user_db_t* initUserDB() {
-  user_db_t* db = malloc(sizeof(user_db_t));
+  db = malloc(sizeof(user_db_t));
   db->count = 0;
   db->table = malloc(MAXUSERS * sizeof(user_t));
   return db;
@@ -72,8 +73,8 @@ uint8_t* createHash(char* password, uint8_t* salt, int iter) {
   }
 }
 
-int checkCredentials(user_db_t* db, char* username, char* password) {
-  user_t* user = getUserByName(db, username);
+int checkCredentials(char* username, char* password) {
+  user_t* user = getUserByName(username);
   if (user != NULL) {
     uint8_t* hash = createHash(password, user->salt, user->iter);
     for (int k = 0; k < SHA_512_DIGEST_SIZE; k++) {
@@ -93,7 +94,7 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
   }
 }
 
-user_t* getUserByName(user_db_t* db, char* username) {
+user_t* getUserByName(char* username) {
   // TODO: better data access
   for (int i = 0; i < db->count; i++) {
     if (!strcmp(db->table[i].username, username)) {
@@ -103,7 +104,7 @@ user_t* getUserByName(user_db_t* db, char* username) {
   return NULL;
 }
 
-int addUser(user_db_t* db, user_t* user) {
+int addUser(user_t* user) {
   db->count++;
   db->table[db->count-1] = *user;
 

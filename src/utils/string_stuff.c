@@ -2,6 +2,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
 #include "string_stuff.h"
 
 char* concat(int num, ...) {
@@ -86,4 +88,32 @@ char* getThirdParam(char* msg) {
   while (msg[i] != ';') {param[i-k] = msg[i]; i++;}
   param[i-k] = 0;
   return param;
+}
+
+void get_password(char* prompt, char password[]) {
+    static struct termios oldt, newt;
+    int i = 0;
+    int c;
+
+    printf("%s", prompt);
+    /*saving the old settings of STDIN_FILENO and copy settings for resetting*/
+    tcgetattr( STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    /*setting the approriate bit in the termios struct*/
+    newt.c_lflag &= ~(ECHO);
+
+    /*setting the new bits*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &newt);
+
+    /*reading the password from the console*/
+    while ((c = getchar())!= '\n' && c != EOF && i < SIZE){
+        password[i++] = c;
+    }
+    password[i] = '\0';
+
+    /*resetting our old STDIN_FILENO*/
+    tcsetattr( STDIN_FILENO, TCSANOW, &oldt);
+
+    return;
 }
