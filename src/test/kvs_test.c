@@ -20,6 +20,8 @@ void test(){
     printKVS(t);
     printf("del one: %s\n", (char*) del(t, "one"));
     printf("deleted object\n");
+    printf("Adding one again\n");
+    set(t, "one", (void*) "newTwo");
     printf("del five: %s\n", (char*)del(t, "five"));
     printf("del seven: %s\n", (char*)del(t, "seven"));
     printf("get three: %s\n", (char*)get(t, "three"));
@@ -30,7 +32,7 @@ void test(){
     printf("Get key whatever: %s\n", (char*)get(t, "whatever"));
     printf("Or when you try to delete it even?\n");
     printf("Del key whatever: %s\n", (char*)del(t, "whatever"));
-
+    printKVS(t);
     destroy(t);
 }
 
