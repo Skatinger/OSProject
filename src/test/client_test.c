@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   }
 
 
-  if(!strcmp(buf, SUCCESS_DEL("myThirdkey", "OPisgreat!"))) {
+  if(!strcmp(buf, SUCCESS_DEL("unifr", "OPisgreat"))) {
     logger("All well, exiting now", INFO);
     c_end_TLS();
     logger("Socket closed", INFO);
