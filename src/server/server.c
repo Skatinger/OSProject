@@ -10,6 +10,8 @@
 #include <time.h>
 #include "server.h"
 #include "../project.h"
+#include "../utils/logger.h"
+
 
 #if USE_TLS == TRUE
   #include <openssl/ssl.h>
@@ -21,7 +23,9 @@
 // the address of this server (based on its real address)
 static struct sockaddr_in server_address;
 
-struct sockaddr_in s_init_address(int port) {
+static int socket_descriptor = 0;
+
+static struct sockaddr_in s_init_address(int port) {
   struct sockaddr_in server;
 
   memset(&server, '0', sizeof(server)); // zero initialise
@@ -36,8 +40,9 @@ struct sockaddr_in s_init_address(int port) {
   return server;
 }
 
-int s_create_socket(int port) {
-    int socket_descriptor = 0;
+static int s_create_socket(int port) {
+    // local here because return value
+     int socket_descriptor = 0;
 
     // create a new socket and store its id into the var socket_descriptor
     // params mean usual protocols are needed (IP, TCP) and no UDP.
@@ -57,7 +62,7 @@ int s_create_socket(int port) {
     return socket_descriptor;
 }
 
-int s_listen(int socket_descriptor) {
+static int s_listen(int socket_descriptor) {
   // MAX_CONNECTION_QUEUE is the max. number of connections that can be queued
   // if the server is busy, apparently this is usually 5
   // (defined in header file)
@@ -122,28 +127,47 @@ void s_init_TLS() {
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_ssl_algorithms();
+
+    // start the socket
+    socket_descriptor = s_create_socket(PORT);
+    s_listen(socket_descriptor);
+    logger("Listening for new connections now.", INFO);
+
 }
 
-int s_connect_TLS(int connection_descriptor, SSL** tls_to_store) {
+connection_t* s_connect_TLS() {
+  int connection_descriptor;
+  connection_t* con_info = malloc(sizeof(connection_t));
+
+  // connecting using TCP socket first
+  connection_descriptor = s_connect(socket_descriptor);
+  con_info->socket_descriptor = connection_descriptor;
+
+  // new buffer for this connection
+  char buf[BUFFER_SIZE];
+  bzero(buf, BUFFER_SIZE);
+  strcpy(con_info->buffer, buf);
+  con_info->data_length = 0;
+
   SSL_CTX* ctx = s_create_TLS_context();
 
-  SSL* tls;
   // create a new SSL connection info based on the context
-  *tls_to_store = SSL_new(ctx);
+  con_info->TLS_descriptor = SSL_new(ctx);
   // and 'bind' it to the existing TCP connection socket (an already accepted
   // conncetion of a client!)
   int err;
 
-  if ((err = SSL_set_fd(*tls_to_store, connection_descriptor)) <= 0) {
+  if ((err = SSL_set_fd(con_info->TLS_descriptor, connection_descriptor)) <= 0) {
     s_TLS_error("Joining socket with TLS failed.", FALSE);
+    return NULL;
   }
 
-  if ((err = SSL_accept(*tls_to_store)) <= 0) {
-    printf("%s\n", ERR_error_string(SSL_get_error(*tls_to_store, err), NULL));
+  if ((err = SSL_accept(con_info->TLS_descriptor)) <= 0) {
+    printf("%s\n", ERR_error_string(SSL_get_error(con_info->TLS_descriptor, err), NULL));
     s_TLS_error("Unable to connect (TLS)", FALSE);
-    return -1;
+    return NULL;
   } else {
-    return 0;
+    return con_info;
   }
 }
 
@@ -172,7 +196,7 @@ int s_write_TLS(connection_t* con_info, char message[BUFFER_SIZE]) {
   }
 }
 
-SSL_CTX* s_create_TLS_context() {
+static SSL_CTX* s_create_TLS_context() {
     const SSL_METHOD *method;
     SSL_CTX *ctx;
 
@@ -211,7 +235,7 @@ SSL_CTX* s_create_TLS_context() {
     return ctx;
 }
 
-void s_TLS_error(char* error_msg, int exit_program) {
+static void s_TLS_error(char* error_msg, int exit_program) {
   int err;
   char buf[ERR_BUF_SIZE];
 

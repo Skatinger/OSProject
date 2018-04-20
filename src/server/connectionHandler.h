@@ -3,20 +3,14 @@
 
 #include "../project.h"
 #define MAX_CONNECTIONS 100
+#define MAX_IDLE 7200 // 2h
+#define RETRIAL_TIME 10
 
 
 #if USE_TLS == TRUE
   #include <openssl/ssl.h>
 #endif
 
-typedef struct connection_t {
-  int data_length;                // length of read data
-  char buffer[BUFFER_SIZE];   // buffer to read data from this connection
-  int socket_descriptor; // the socket for this connection (represented by an int)
-  #if USE_TLS == TRUE
-    SSL* TLS_descriptor;   // the tls connection
-  #endif
-} connection_t;
 
 /*
 Basics: Every connection has its own thread.

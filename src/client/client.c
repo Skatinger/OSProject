@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "client.h"
+#include "clientRequests.h"
 
 
 
@@ -43,7 +44,7 @@ static struct sockaddr_in c_parse_address(int port, char* ip_address) {
   return addr;
 }
 
-static int c_create_socket(int port) {
+static int c_create_socket() {
   int socket_descriptor = 0;
 
   // create a new socket
@@ -62,7 +63,7 @@ static void c_init_TLS() {
   SSL_library_init();
   SSL_load_error_strings();
 
-  socket_descriptor = c_create_socket(PORT);
+  socket_descriptor = c_create_socket();
   printf("-- Created socket --\n");
 
   ctx = c_create_context();
@@ -114,13 +115,14 @@ int c_receive_TLS(char buffer[BUFFER_SIZE]) {
     c_TLS_error("Unable to read data from TLS server.", FALSE);
     return n - 1;
   } else {
-    buffer[n] = '\0';
+    buffer[n] = 0;
     return 0;
   }
 }
 
 // for testing only
 void c_end_TLS() {
+  c_send_TLS(BYE);
   close(socket_descriptor);
   EVP_cleanup();
   free(tls);

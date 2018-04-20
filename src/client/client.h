@@ -48,7 +48,7 @@ void c_end_TLS();
  * @param  port the port to open
  * @return   socket descriptor
  */
-static int c_create_socket(int port);
+static int c_create_socket();
 
 /**
  * Takes an IP Address as a string (e.g. "127.0.0.1") and turns it into a

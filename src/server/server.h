@@ -2,6 +2,7 @@
 #define HEADER_FILE
 
 #include "../project.h"
+#include <openssl/ssl.h>
 
 #define MAX_CONNECTION_QUEUE 5
 #define ERR_BUF_SIZE 256
@@ -14,7 +15,14 @@
 
 
 
-#include "connectionHandler.h"
+typedef struct connection_t {
+  int data_length;                // length of read data
+  char buffer[BUFFER_SIZE];   // buffer to read data from this connection
+  int socket_descriptor; // the socket for this connection (represented by an int)
+  #if USE_TLS == TRUE
+    SSL* TLS_descriptor;   // the tls connection
+  #endif
+} connection_t;
 
 /**
  * Returns the descriptor for a new server socket (Basically an ID for this
@@ -22,7 +30,7 @@
  * @param  port the port to open
  * @return   socket descriptor
  */
-int s_create_socket(int port);
+static int s_create_socket(int port);
 
 /**
  * Make a struct containing the server address (local address,
@@ -30,7 +38,7 @@ int s_create_socket(int port);
  * @param  port the port to pen
  * @return      the struct containing the address
  */
-struct sockaddr_in s_init_address(int port);
+static struct sockaddr_in s_init_address(int port);
 
 /**
  * Abstraction of the listen primitive. Has the server listen
@@ -39,7 +47,7 @@ struct sockaddr_in s_init_address(int port);
  * @param  socket_descriptor the int identifying a socket
  * @return   0 in case of success
  */
-int s_listen(int socket_descriptor);
+static int s_listen(int socket_descriptor);
 
 /**
  * Abstraction of the accept primitive -- blocks the thread until
@@ -88,7 +96,7 @@ int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
    */
   //SSL* s_connect_TLS(int connection_descriptor, SSL_CTX* ctx);
 
-  int s_connect_TLS(int connection_descriptor, SSL** tls_to_store);
+  connection_t* s_connect_TLS();
   /**
    * Reads from the (TLS) connection given in the argument and stores the read STUFF
    * in that buffer. Handles errors (basic).
@@ -119,14 +127,14 @@ int s_write(connection_t* con_info, char message[BUFFER_SIZE]);
    * The context will then be used to create a new TLS connection.
    * @return the context
    */
-  SSL_CTX* s_create_TLS_context();
+  static SSL_CTX* s_create_TLS_context();
 
   /**
    * Used to print TLS errors. Exits the program if the arg is nonzero.
    * @param error_msg A message to print about the error
    * @param indicates if the program should be stopped
    */
-  void s_TLS_error(char* error_msg, int exit_program);
+  static void s_TLS_error(char* error_msg, int exit_program);
 
 #endif
 

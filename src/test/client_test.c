@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include "../client/client.h"
 #include "../client/clientRequests.h"
+#include "../utils/logger.h"
+
 
 int main(int argc, char *argv[]) {
   if(argc != 2) {
@@ -11,9 +13,9 @@ int main(int argc, char *argv[]) {
   c_connect_TLS(argv[1]);
 
   // write a simple request
-  char* message = LOGIN("unifr", "OPisgreat");
+  char* message = PUT("unifr", "OPisgreat");
 
-  sleep(5); // wait until message is sent to give some time to the testing
+  sleep(2); // wait until message is sent to give some time to the testing
              // programmer
              //
   printf("Sending %s\n", message);
@@ -25,13 +27,37 @@ int main(int argc, char *argv[]) {
       printf("\n Error : Fputs error\n");
   }
 
-  if(!strcmp(buf, SUCCESS_LOGIN("unifr"))) {
-    printf("All well, exiting now\n");
+  sleep(2);
+
+  message = GET("bla");
+  printf("Sending %s\n", message);
+  c_send_TLS(message);
+
+  n = c_receive_TLS(buf);
+  if(fputs(buf, stdout) == EOF) {
+      printf("\n Error : Fputs error\n");
+  }
+
+  sleep(2);
+
+
+  message = DEL("myThirdkey");
+  printf("Sending %s\n", message);
+  c_send_TLS(message);
+
+  n = c_receive_TLS(buf);
+  if(fputs(buf, stdout) == EOF) {
+      printf("\n Error : Fputs error\n");
+  }
+
+
+  if(!strcmp(buf, SUCCESS_DEL("myThirdkey", "someValue"))) {
+    logger("All well, exiting now", INFO);
     c_end_TLS();
-    printf("Socket closed\n");
+    logger("Socket closed", INFO);
     exit(0);
   } else {
-    printf("guess we got a wrong message\n");
+    logger("guess we got a wrong message", ERROR);
   }
 
   return 0;

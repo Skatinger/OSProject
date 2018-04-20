@@ -1,10 +1,11 @@
 #ifndef SERVER_RESPONSES
 #define SERVER_RESPONSES
-#include <string.h>
-#include <stdarg.h>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include "../utils/string_stuff.h"
 #include "../project.h"
+
 
 /* =========SUCCESS CODE DEFS======================*/
 #define SUCCESS_GOT_NR    10
@@ -56,40 +57,8 @@
 
 /* ============= OTHERS ======================== */
 #ifndef BYE
-#define BYE "BYE;\n"
+#define BYE "BYE ;\n"
 #endif
 
-
-char* concat(int num, ...) {
-  va_list vlist;
-  va_start(vlist, num);
-  char* dest = malloc(1024*sizeof(char));
-  dest[0] = '\0';
-  strcat(dest, va_arg(vlist, char*));
-  for (int i = 1; i < num; i++) {
-    char* source = va_arg(vlist, char*);
-    strcat(dest,source);
-  }
-  va_end(vlist);
-  return dest;
-}
-
-char* intToString(int num) {
-  char* ret = malloc(3*sizeof(char));
-  sprintf(ret, "%d", num);
-  return ret;
-}
-
-char* concatCode(int code, int nbWords, ...) {
-  va_list vlist;
-  va_start(vlist, nbWords);
-  char* dest = intToString(code);
-  for (int i = 0; i < nbWords; i++) {
-    char* source = va_arg(vlist, char*);
-    strcat(dest,source);
-  }
-  va_end(vlist);
-  return dest;
-}
 
 #endif

@@ -54,24 +54,24 @@ all: build/client_test  build/kvs_test build/auth_test build/connectionH build/s
 #	gcc -o build/server -lssl -lcrypto build/obj/server.o
 
 # attention: this is machine-dependant (depends on openssl installation)
-build/connectionH: src/server/connectionHandler.c src/server/server.c src/server/server.h
-	gcc -o build/connectionH src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+build/connectionH: src/server/connectionHandler.c src/server/server.c src/server/server.h src/utils/logger.c src/server/access_handler.c src/utils/string_stuff.c
+	gcc -o build/connectionH src/utils/string_stuff.c src/utils/logger.c  src/server/access_handler.c src/server/connectionHandler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/kvs: build/obj/kvs.o src/server/keyvalue.h
 #	gcc -o build/kvs build/obj/kvs.o
 
-build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o
-	gcc -o build/kvs_test build/obj/kvs.o build/obj/kvs_test.o
+build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o src/utils/logger.c
+	gcc -o build/kvs_test src/utils/logger.c build/obj/kvs.o build/obj/kvs_test.o
 
-build/auth_test: src/server/authentification.c src/test/auth_test.c src/server/authentification.h
-	gcc -o build/auth_test  src/test/auth_test.c src/server/authentification.c -lssl -lcrypto
+build/auth_test: src/server/authentification.c src/test/auth_test.c src/server/authentification.h src/utils/logger.c
+	gcc -o build/auth_test src/utils/logger.c src/test/auth_test.c src/server/authentification.c -lssl -lcrypto
 
 # attention: this is machine-dependant (depends on openssl installation)
 build/sslTest: src/server/sslTest.c
 	gcc src/server/sslTest.c -o build/sslTest  -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include
 
-build/client_test: src/client/client.c src/test/client_test.c
-	gcc src/test/client_test.c src/client/client.c -o build/client_test -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+build/client_test: src/client/client.c src/test/client_test.c src/utils/logger.c src/utils/string_stuff.c
+	gcc src/test/client_test.c src/utils/string_stuff.c src/utils/logger.c src/client/client.c -o build/client_test -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 #object files
 
 #build/obj/client.o: src/client/client.c

@@ -1,11 +1,17 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <sys/socket.h>
+#include <unistd.h>
+#include <semaphore.h>
 #include <string.h>
+#include <time.h>
 #include "server.h"
 #include "connectionHandler.h"
 #include "serverResponses.h"
+#include "../utils/logger.h"
+#include "../utils/string_stuff.h"
+#include "access_handler.h"
+
 
 #if USE_TLS == TRUE
   #include <openssl/ssl.h>
@@ -19,21 +25,19 @@
 // implementation file), send a reply)
 // TODO: implement an access control that determines when a connection may or may
 // not access the KVS.
+//
+static int t_counter;
+static pthread_mutex_t counter_lock;
 
 int main(int argc, char const *argv[]) {
-  // new descriptor ('id') for a socket
-  int socket_d =  0;
-
   char c;
-
-
-  socket_d = s_create_socket(PORT);
-  s_listen(socket_d);
   pthread_t pid;
 
-  printf("Listening for new connections now\n");
+  s_init_TLS();
+  pthread_mutex_init(&counter_lock, NULL);
+
   // new thread that waits for connections
-  pthread_create(&pid, NULL, accept_new_connections, (void *)&socket_d);
+  pthread_create(&pid, NULL, accept_new_connections, NULL);
 
   // mechanism to stop the server
   scanf("%c", &c);
@@ -42,128 +46,146 @@ int main(int argc, char const *argv[]) {
     exit(0);
   }
 
-
   return 0;
 }
 
 void* accept_new_connections(void* arg) {
-  int socket_d = *(int*)arg;
-  int connection_descriptor = 0;
-  // array with all the connection threads
-  pthread_t connection_threads[MAX_CONNECTIONS];
-  int t_counter = 0; // counting
+  t_counter = 0; // counting
+  pthread_t tid;
 
   // entering loop
   while(TRUE) {
-    void** ret;
-    connection_descriptor = s_connect(socket_d);
-    printf("connected to client\n");
-    connection_t* con_info = malloc(sizeof(connection_t));
-    con_info->socket_descriptor = connection_descriptor;
-    // initialising the buffer with zeros
-    //bzero(con_info->buffer, BUFFER_SIZE);
-    char buf[BUFFER_SIZE];
-    bzero(buf, BUFFER_SIZE);
-    strcpy(con_info->buffer, buf);
-    con_info->data_length = 0;
-
-    printf("socket: %d\n", con_info->socket_descriptor);
     #if USE_TLS
-      SSL* tls = NULL;
-      s_init_TLS();
-      s_connect_TLS(connection_descriptor, &tls);
-      con_info->TLS_descriptor = tls;
-      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handle_TLS_connection, (void*)con_info));
+      connection_t* con_info;
+      pthread_mutex_lock(&counter_lock);
+      /* critical region -- counter */
+      if (t_counter < MAX_CONNECTIONS) {
+        t_counter++;
+        // counter manipulation over
+        pthread_mutex_unlock(&counter_lock);
+
+        // this blocks as long as there is no client trying to
+        // connect to the server
+        con_info = s_connect_TLS();
+        if (con_info == NULL) continue;
+        // thread to handle this connection
+        logger("Creating thread for new connection", INFO);
+        pthread_create(&tid, NULL, handle_TLS_connection, (void*)con_info);
+      } else {
+        // counter test done
+        pthread_mutex_unlock(&counter_lock);
+        logger("Can't accept any more connections atm", ERROR);
+        sleep(RETRIAL_TIME);
+      }
     #else
-      printf("thread creation: %d\n", pthread_create(&connection_threads[t_counter++], NULL, handle_connection, (void*)con_info));
+      logger("Trying to connect w/o TLS :0", ERROR);
+      break;
     #endif
   }
 }
-
-// will be used in handler
-char* getFirstParam(char* msg);
-char* getSecondParam(char* msg);
 
 
 void* handle_connection(void* arg) {
   // casting back to struct holding the data
   connection_t* con_info = (connection_t*) arg;
-  //printf("hello from 'child' thread\n");
-  int r = s_read(con_info);
-  if (r == 0) printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
+  time_t last_active;
+  int r;
 
-  char* username = getFirstParam(con_info->buffer);
-  //char* password = getSecondParam(con_info->buffer);
-  s_write(con_info, SUCCESS_LOGIN(username));
-  // if that test was successful, kill the program
-  //pthread_cancel(mainThread);
-  return NULL;
+  last_active = time(NULL);
+
+  // entering the main loop
+  while(difftime(time(NULL), last_active < MAX_IDLE)) {
+    // try to read from the network
+    r = s_read(con_info);
+
+    // now that the reading was successful, update the last active time
+    last_active = time(NULL);
+
+    if (r == 0) {
+      printf("Reading from socket %d:", con_info->socket_descriptor);
+      logger(con_info->buffer, INFO);
+    } else {
+      logger("Reading seems to have failed", ERROR);
+      continue;
+    }
+  }
+}
+
+static char* parse_message(char* msg) {
+  char* cmd = malloc(6*sizeof(char));
+
+  // TODO: check for validity of the message (use regex to see if valid
+  // message according to protocol)
+
+  // retrieving the first word, i.e. the command of the request
+  for (int i = 0; i < strlen(msg); i++) {
+    if (msg[i] == ' ') {
+      cmd[i] = 0;
+      break;
+    } else {
+      cmd[i] = msg[i];
+    }
+  }
+
+
+  // and switching over it
+  if (!strcmp(cmd, "GET")) {
+    return reader(getFirstParam(msg));
+  } else if (!strcmp(cmd, "PUT")) {
+    return writer(getFirstParam(msg), getSecondParam(msg), PUT);
+  } else if (!strcmp(cmd, "DEL")) {
+    return writer(getFirstParam(msg), NULL, DEL);
+  } else if (!strcmp(cmd, "UPD")) {
+    return writer(getFirstParam(msg), getSecondParam(msg), UPD);
+  } else if (!strcmp(cmd, "BYE")) {
+    return "BYE ";
+  } else {
+    logger("Unknown commad to parse:", INFO);
+    logger(cmd, INFO);
+    logger("from message:", INFO);
+    logger(msg, INFO);
+    return NULL;
+  }
 }
 
 #if USE_TLS == TRUE
   void* handle_TLS_connection(void* arg) {
-
+    // casting back to struct holding the data
     connection_t* con_info = (connection_t*) arg;
+    time_t last_active;
+    int r;
 
-    int r = s_read_TLS(con_info);
-    if (r == 0) {
-      printf("Reading from socket %d:\n%s\n", con_info->socket_descriptor, con_info->buffer);
+    last_active = time(NULL);
 
-      char* username = getFirstParam(con_info->buffer);
-      //char* password = getSecondParam(con_info->buffer);
-      s_write_TLS(con_info, SUCCESS_LOGIN(username));
-      s_end_TLS(con_info);
+    // entering the main loop
+    while(difftime(time(NULL), last_active < MAX_IDLE)) {
+      // try to read from the network
+      r = s_read_TLS(con_info);
+
+      // now that the reading was successful, update the last active time
+      last_active = time(NULL);
+
+      if (r == 0) {
+        printf("Reading from socket %d:", con_info->socket_descriptor);
+        logger(con_info->buffer, INFO);
+        logger("Replying the following:", INFO);
+        char* msg = parse_message(con_info->buffer);
+        s_write_TLS(con_info, msg);
+        if (!strcmp(msg, "BYE")) {
+          //s_write_TLS(con_info, BYE);
+          break;
+        }
+        logger(msg, INFO);
+      } else {
+        //logger("Reading seems to have failed", ERROR);
+        sleep(5);
+        continue;
+      }
     }
-    // if that test was successful, kill the program
-    //pthread_cancel(mainThread);
-    return NULL;
+
+    // ending the conenction here
+    s_end_TLS(con_info);
+    pthread_exit(NULL);
 
   }
 #endif
-
-//============ PARSING FUNCTIONS ===================
-// should be moved into a separate file once complete, these
-// are more for testing purposes.
-//
-char* getFirstParam(char* msg) {
-  static char param[BUFFER_SIZE];
-  int i, n, k;
-  i = 0; n = strlen(msg);
-
-  // skip the 'command'
-  while (msg[i] != ' ') {i++;}
-  i++; k = i; // k = beginning index of the parameter
-  // copy the first argument (i.e. until the second is reached, or the end
-  // if there is only one)
-  while (msg[i] != ':' && msg[i] != ';') {param[i-k] = msg[i]; i++;}
-  // null - terminate --> nicest thing about C
-  param[i+1] = '\0';
-
-  return param;
-}
-
-char* getSecondParam(char* msg) {
-  static char param[BUFFER_SIZE];
-  int i, n, k;
-  i = 0; n = strlen(msg);
-
-  // skip the command and first arg
-  while (msg[i] != ':') {i++;}
-  i++; k = i; // k = beginning of the second arg
-  // loop until end or third arg begins
-  while (msg[i] != ';' && msg[i] != ':') {param[i-k] = msg[i]; i++;}
-  return param;
-}
-
-char* getThirdParam(char* msg) {
-  static char param[BUFFER_SIZE];
-  int i, n, k;
-  i = 0; n = strlen(msg);
-
-  while(msg[i] != ':') {i++;}
-  i++; // loop over the secon arg as well
-  while(msg[i] != ':') {i++;}
-  i++; k = i;
-  while (msg[i] != ';') {param[i-k] = msg[i]; i++;}
-  return param;
-}
