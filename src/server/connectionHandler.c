@@ -138,7 +138,7 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "UPD")) {
     return writer(getFirstParam(msg), getSecondParam(msg), UPD);
   } else if (!strcmp(cmd, "BYE")) {
-    return "BYE ";
+    return BYE;
   } else {
     logger("Unknown commad to parse:", INFO);
     logger(cmd, INFO);
@@ -169,15 +169,17 @@ static char* parse_message(char* msg) {
         printf("Reading from socket %d:", con_info->socket_descriptor);
         logger(con_info->buffer, INFO);
         logger("Replying the following:", INFO);
+
         char* msg = parse_message(con_info->buffer);
-        s_write_TLS(con_info, msg);
-        if (!strcmp(msg, "BYE")) {
-          //s_write_TLS(con_info, BYE);
+        logger(msg, INFO);
+
+        if (!strcmp(msg, BYE)) {
+          logger("Client ended the connection", INFO);
           break;
         }
-        logger(msg, INFO);
+        s_write_TLS(con_info, msg);
       } else {
-        //logger("Reading seems to have failed", ERROR);
+        logger("Reading seems to have failed", ERROR);
         sleep(5);
         continue;
       }
