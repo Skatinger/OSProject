@@ -83,7 +83,7 @@ Allows to add a new user to the database. May only be done from admin. The serve
 
 ## DEL_U
 Allows to delete a user from the database. May only be done from the user themself or an admin. It's the servers duty to check if this operation is allowed.
-*Usage*: `DEL_U <username>`
+*Usage*: `DEL_U <username>;`
 
 ## CHG_U
 Used to update the credentials of a user. Again, the server must check that the caller has the rights to do so.
