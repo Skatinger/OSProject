@@ -107,6 +107,7 @@ static void put() {
   printf("Specify the key you want to add\n");
   scanf("%s", input);
   strcpy(key, input);
+  printf("key %s accepted\n", input);
   printf("And the value for key %s\n", key);
   scanf("%s", input);
   c_send_TLS(PUT(key, input));
