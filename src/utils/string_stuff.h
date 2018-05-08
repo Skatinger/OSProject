@@ -12,6 +12,7 @@
 #define COLOR_RESET "\x1b[0m"
 
 #define RED_TXT(string) COLOR_RED string COLOR_RESET
+#define GREEN_TXT(string) COLOR_GREEN string COLOR_RESET
 
 
 char* concat(int num, ...);
