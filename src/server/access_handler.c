@@ -74,6 +74,14 @@ char* reader(char* key) {
   return value != NULL ? SUCCESS_GOT(key, value) : ERROR_KEY_NOT_FOUND(key);
 }
 
+//TODO implement level of access. atm everyone gets root access
+char* user_db_writer(char *username, char* password){
+  user_t* user = newUser(username, password, ADMIN);
+  addUser(user);
+  logger("added new user\n", INFO);
+  return SUCCESS_ADD_U(user);
+}
+
 char* writer(char* key, char* value, int type) {
   // TODO: error stuff
   char* ret;

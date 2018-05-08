@@ -159,6 +159,8 @@ static char* parse_message(char* msg) {
     return writer(getFirstParam(msg), NULL, DEL);
   } else if (!strcmp(cmd, "UPD")) {
     return writer(getFirstParam(msg), getSecondParam(msg), UPD);
+  } else if (!strcmp(cmd, "ADD_U")) {
+    return user_db_writer(getFirstParam(msg), getSecondParam(msg));
   } else if (!strcmp(cmd, "BYE")) {
     return BYE;
   } else if (!strcmp(cmd, "LOGIN")) {

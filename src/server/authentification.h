@@ -21,15 +21,15 @@
 
 // TODO: think about overall structure. Maybe a struct holding all the user info?
 // That way, you could define a max amount of users and its easy to give a new user
-// an id -- jsut count the nbUsers and give the new one the next one.
+// an id -- just count the nbUsers and give the new one the next one.
 //
-// Maybe one also has to split this into authentification and a file accessing the
+// Maybe one also has to split this into authentication and a file accessing the
 // user info database. Especially since some protection is needed.
 // Moreover, check the user_t and import necessary libraries for SHA algorithm.
 //
 // Generally, the system has to be established. Currently, there are two user
 // levels: normal and admin. Do they have access to all KVS or just their own?
-// or a group of them? Depeding on that, determining access is just a boolean
+// or a group of them? Depending on that, determining access is just a boolean
 // or a more complex function.
 // Perhaps, it would be best to have a generic implementation with a member
 // int rights, that determines the rights -- if we settle for just normal and
@@ -42,7 +42,7 @@
  * @member username the username string with max 30 chars
  * @member passwordHash the PBKDF2 generated hash of the user's pw
  * @member salt the corresponding salt
- * @memeber iter the number of iterations for this user in the pw hashing algo
+ * @member iter the number of iterations for this user in the pw hashing algorithm
  * @member rights indicating whether this user has admin rights
  */
 typedef struct {

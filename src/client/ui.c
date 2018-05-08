@@ -55,6 +55,10 @@ int main(int argc, char const *argv[]) {
       continue;
     }
 
+    else if (!strcmp(input, " addUser")) {
+      add_user();
+    }
+
     else if (!strcmp(input, "delete")) {
       delete();
       continue;
@@ -99,7 +103,7 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * delete\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * delete\n \t *addUser\n \t * quit\n\n");
 }
 
 static void put() {
@@ -135,6 +139,28 @@ static void login() {
   } else {
     printf("Nope, that wasn't it. Try again.\n");
     login();
+  }
+}
+
+static void add_user() {
+  char username[1024];
+  char password[1024];
+  //char* access_rights
+  //todo validate root password again before allowing changes to user database
+  printf("Name for new user:\n");
+  scanf("%s", input);
+  strcpy(username, input);
+  printf("password new user:\n");
+  scanf("%s", input);
+  strcpy(password, input);
+  c_send_TLS(ADD_U(username,password));
+
+  c_receive_TLS(buffer);
+
+  if (get_response_nr() == SUCCESS_ADD_U_NR) {
+    printf("Congrats, you added User %s\n", username);
+  } else {
+    printf("Guess what. It didn't work.\n");
   }
 }
 
