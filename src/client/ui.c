@@ -55,7 +55,7 @@ int main(int argc, char const *argv[]) {
       continue;
     }
 
-    else if (!strcmp(input, " addUser")) {
+    else if (!strcmp(input, "addUser")) {
       add_user();
     }
 
@@ -103,7 +103,7 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * delete\n \t *addUser\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * delete\n \t * addUser\n \t * quit\n\n");
 }
 
 static void put() {
