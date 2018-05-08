@@ -29,15 +29,15 @@ void init_access_handler(pthread_key_t* USERNAME_key) {
   writer_waiting = FALSE;
   writer_done = FALSE;
   reader_count = 0;
-  logger("adding a test kvp (bla)\n", INFO);
-  set(kvs, "bla", (void*) "this is a test message. If you see it, very nice");
+  //logger("adding a test kvp (bla)\n", INFO);
+  //set(kvs, "bla", (void*) "this is a test message. If you see it, very nice");
 }
 
 int login(char* password) {
   void* res;
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
-  printf("global username: %s", username);
+  //printf("global username: %s", username);
   user_t* user = getUserByName(username);
   if (checkCredentials(username, password)) {
     int rights;
