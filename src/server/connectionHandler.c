@@ -29,7 +29,7 @@
 //
 static int t_counter;
 static pthread_mutex_t counter_lock;
-static pthread_key_t USERNAME;
+static pthread_key_t USERNAME;  // this key can be used to have a thread-global value
 
 int main(int argc, char const *argv[]) {
   char c;
@@ -64,12 +64,15 @@ void* accept_new_connections(void* arg) {
   t_counter = 0; // counting
   pthread_t tid;
 
-  logger("Accepting connections now.\n", INFO);
+  logger("Accepting connections now.", INFO);
 
   // this key can be used to give each thread a 'global' variable that is
   // specific to the thread and cannot be used by any other.
   pthread_key_create(&USERNAME, NULL);
-  logger("Initialising access handler\n", INFO);
+  logger("Initialising access handler", INFO);
+
+  // giving the acces handler this key, so it can tell what user is on the
+  // current thread
   init_access_handler(&USERNAME);
 
   // entering loop
@@ -121,8 +124,8 @@ void* handle_connection(void* arg) {
     last_active = time(NULL);
 
     if (r == 0) {
-      printf("Reading from socket %d:", con_info->socket_descriptor);
-      logger(con_info->buffer, INFO);
+      logger(concat(2, "Reading from socket ", intToString(con_info->socket_descriptor)), INFO);
+      //logger(con_info->buffer, INFO);
     } else {
       logger("Reading seems to have failed", ERROR);
       continue;
@@ -181,6 +184,7 @@ static char* parse_message(char* msg) {
     connection_t* con_info = (connection_t*) arg;
     time_t last_active;
     int r;
+    char* msg;
 
     last_active = time(NULL);
 
@@ -193,11 +197,11 @@ static char* parse_message(char* msg) {
       last_active = time(NULL);
 
       if (r == 0) {
-        printf("Reading from socket %d:\n", con_info->socket_descriptor);
-        logger(con_info->buffer, INFO);
+        logger(concat(2, "Reading from socket ", intToString(con_info->socket_descriptor)), INFO);
+        //logger(con_info->buffer, INFO);
         logger("Replying the following:", INFO);
 
-        char* msg = parse_message(con_info->buffer);
+        msg = parse_message(con_info->buffer);
         logger(msg, INFO);
 
         if (!strcmp(msg, BYE)) {
