@@ -61,10 +61,10 @@ build/connectionH: src/server/connectionHandler.c src/server/server.c src/server
 #	gcc -o build/kvs build/obj/kvs.o
 
 build/kvs_test: build/obj/kvs_test.o src/server/keyvalue.h build/obj/kvs.o src/utils/logger.c
-	gcc -o build/kvs_test src/utils/logger.c build/obj/kvs.o build/obj/kvs_test.o
+	gcc -o build/kvs_test src/utils/string_stuff.c src/utils/logger.c build/obj/kvs.o build/obj/kvs_test.o
 
 build/auth_test: src/server/authentification.c src/test/auth_test.c src/server/authentification.h src/utils/logger.c
-	gcc -o build/auth_test src/utils/logger.c src/test/auth_test.c src/server/authentification.c -lssl -lcrypto
+	gcc -o build/auth_test src/utils/string_stuff.c src/utils/logger.c src/test/auth_test.c src/server/authentification.c -lssl -lcrypto
 
 # attention: this is machine-dependant (depends on openssl installation)
 build/sslTest: src/server/sslTest.c
@@ -72,6 +72,9 @@ build/sslTest: src/server/sslTest.c
 
 build/client_test: src/client/client.c src/test/client_test.c src/utils/logger.c src/utils/string_stuff.c
 	gcc src/test/client_test.c src/utils/string_stuff.c src/utils/logger.c src/client/client.c -o build/client_test -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+
+build/logger_test: src/utils/logger.c src/utils/logger.h src/utils/string_stuff.c src/utils/string_stuff.h src/test/logger_test.c
+	gcc src/utils/string_stuff.c src/utils/logger.c  src/test/logger_test.c -o build/logger_test
 #object files
 
 #build/obj/client.o: src/client/client.c

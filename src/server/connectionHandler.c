@@ -161,11 +161,14 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "LOGIN")) {
     char* username = getFirstParam(msg);
     char* password = getSecondParam(msg);
+    printf("Logging in user %s\n", username);
     pthread_setspecific(USERNAME, (void*) username);
     int n = login(password);
     //free(password);
 
     return n == 0 ? SUCCESS_LOGIN(username) : ERROR_ACCESS_DENIED(username);
+  } else if (!strcmp(cmd, "LOGOUT")) {
+    logout();
   } else {
     logger("Unknown commad to parse:", INFO);
     logger(cmd, INFO);
@@ -185,8 +188,9 @@ static char* parse_message(char* msg) {
     last_active = time(NULL);
 
     // entering the main loop
-    while(difftime(time(NULL), last_active < MAX_IDLE)) {
+    while(difftime(time(NULL), last_active) < MAX_IDLE) {
       // try to read from the network
+      logger("trying to read from client", INFO);
       r = s_read_TLS(con_info);
 
       // now that the reading was successful, update the last active time
@@ -198,12 +202,15 @@ static char* parse_message(char* msg) {
         logger("Replying the following:", INFO);
 
         char* msg = parse_message(con_info->buffer);
+        if (msg == NULL) continue;
         logger(msg, INFO);
 
         if (!strcmp(msg, BYE)) {
           logger("Client ended the connection", INFO);
+          //logout();
           break;
         }
+
         s_write_TLS(con_info, msg);
       } else {
         logger("Reading seems to have failed", ERROR);

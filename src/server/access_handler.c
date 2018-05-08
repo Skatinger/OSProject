@@ -37,7 +37,7 @@ int login(char* password) {
   void* res;
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
-  printf("global username: %s", username);
+  printf("global username: %s\n", username);
   user_t* user = getUserByName(username);
   if (checkCredentials(username, password)) {
     int rights;
@@ -54,8 +54,20 @@ int login(char* password) {
   }
 }
 
+void logout() {
+  char* username;
+  username = pthread_getspecific(*USERNAME);
+  pthread_mutex_lock(&access_rights_lock);
+  del(access_rights, username);
+  pthread_mutex_unlock(&access_rights_lock);
+  print_access_rights();
+}
+
 char* reader(char* key) {
+  int rights;
   char* value;
+  if ((rights = get_rights()) < 0) return NULL;
+
   pthread_mutex_lock(&counter_lock);
   reader_count++;
   if (reader_count == 1 || writer_done) {
@@ -79,6 +91,8 @@ char* writer(char* key, char* value, int type) {
   char* ret;
   char* whatever = malloc(BUFFER_SIZE * sizeof(char));
   int n;
+  int rights;
+  if ((rights = get_rights()) < 0) return NULL;
   pthread_mutex_lock(&counter_lock);
   writer_waiting = TRUE;
   pthread_mutex_unlock(&counter_lock);
@@ -107,10 +121,30 @@ char* writer(char* key, char* value, int type) {
   writer_done = TRUE;
   pthread_mutex_unlock(&counter_lock);
   pthread_mutex_unlock(&kvs_lock);
+  printf("global: %s\n", pthread_getspecific(*USERNAME));
   return ret;
 }
 
+static int get_rights() {
+  int r;
+  char* username;
+  username = pthread_getspecific(*USERNAME);
+  pthread_mutex_lock(&access_rights_lock);
+  r = (int) get(access_rights, username);
+  pthread_mutex_unlock(&access_rights_lock);
+  return r;
+}
+
+static void print_access_rights() {
+  for (int i = 0; i < access_rights->size; i++) {
+    if (access_rights->table[i].key == NULL) continue;
+    printf("i = %d : key = %s value = %d \n", i, access_rights->table[i].key, (int) access_rights->table[i].value);
+  }
+}
 
 void end_access_handler() {
   printKVS(kvs);
+  printf("now printing access rights\n");
+  print_access_rights();
+  printf("Get global var: %s\n", pthread_getspecific(*USERNAME));
 }

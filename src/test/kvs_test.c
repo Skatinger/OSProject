@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#define KEY_T char*
+#define VALUE_T char*
 #include "../server/keyvalue.h"
 
 void test(){

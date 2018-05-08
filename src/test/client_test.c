@@ -69,6 +69,16 @@ int main(int argc, char *argv[]) {
 
   sleep(2);
 
+  message = LOGOUT(username);
+  printf("Sending %s\n", message);
+  c_send_TLS(message);
+
+  n = c_receive_TLS(buf);
+  if(fputs(buf, stdout) == EOF) {
+      printf("\n Error : Fputs error\n");
+  }
+
+  sleep(2);
 
   message = DEL("unifr");
   printf("Sending %s\n", message);

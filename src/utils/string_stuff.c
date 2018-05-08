@@ -42,7 +42,7 @@ char* concatCode(int code, int nbWords, ...) {
 }
 
 char* getFirstParam(char* msg) {
-  static char param[BUFFER_SIZE];
+  char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k, j;
   i = 0; n = strlen(msg); j = 0;
 
@@ -63,7 +63,7 @@ char* getFirstParam(char* msg) {
 }
 
 char* getSecondParam(char* msg) {
-  static char param[BUFFER_SIZE];
+  char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k;
   i = 0; n = strlen(msg);
 
@@ -77,7 +77,7 @@ char* getSecondParam(char* msg) {
 }
 
 char* getThirdParam(char* msg) {
-  static char param[BUFFER_SIZE];
+  char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k;
   i = 0; n = strlen(msg);
 
