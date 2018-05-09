@@ -54,6 +54,11 @@ int main(int argc, char const *argv[]) {
       put();
       continue;
     }
+    
+    else if (!strcmp(input, "update")) {
+	  update();
+	  continue;
+	}
 
     else if (!strcmp(input, "addUser")) {
       add_user();
@@ -95,6 +100,23 @@ static void delete() {
   }
 }
 
+static void update() {
+  char key[1024];
+  printf("Specify the key you want to update\n");
+  scanf("%s", input);
+  strcpy(key, input);
+  printf("And the value for key %s\n", key);
+  scanf("%s", input);
+  c_send_TLS(UPD(key, input));
+  c_receive_TLS(buffer);
+
+  if (get_response_nr() == SUCCESS_UPD_NR) {
+    printf("Value to key successfully updated!\n");
+  } else {
+    printf(RED_TXT("Seems like something has failed here..."));
+  }
+}
+
 static void quit() {
   printf("Quitting\n");
   c_end_TLS();
@@ -103,7 +125,7 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * delete\n \t * addUser\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * update \n \t * delete\n \t * addUser\n \t * quit\n\n");
 }
 
 static void put() {
