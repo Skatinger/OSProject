@@ -44,7 +44,10 @@
 	#gcc -o $@ $^
 
 
-all: build/client_test  build/kvs_test build/auth_test build/connectionH build/sslTest src/project.h build/ui #build/kvs
+all: dir build/client_test  build/kvs_test build/auth_test build/connectionH build/sslTest src/project.h build/ui #build/kvs
+
+dir:
+	mkdir -p -v build/obj
 
 #build/client: src/client/client.c
 #	gcc -o build/client src/client/client.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
@@ -96,4 +99,4 @@ build/obj/authentification.o: src/server/authentification.c
 	gcc -pthread -o build/obj/authentification.o -c src/server/authentification.c
 #clear all object files
 clear:
-	rm *.o
+	rm -r build
