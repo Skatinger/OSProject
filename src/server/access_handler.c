@@ -91,11 +91,20 @@ char* writer(char* key, char* value, int type) {
   writer_waiting = TRUE;
   pthread_mutex_unlock(&counter_lock);
   pthread_mutex_lock(&kvs_lock);
+  // TODO: Actually check for what the kvs is trying desperatley to let
+  // you know
   switch (type) {
     case PUT:
       n = set(kvs, key, (void*) value);
-      if (n != SUCCESS) {/*allocate new kvs immediately!*/ }
-      ret = SUCCESS_PUT(key, value);
+      if (n == KEY_IN_USE_ERROR) {
+        ret = ERROR_KEY_OCCUPIED(key);
+      } else if (n == STORAGE_FULL_ERROR) {
+        ret = ERROR_SERVER_FULL;
+      } else if (n == SUCCESS) {
+        ret = SUCCESS_PUT(key, value);
+      } else {
+        ret = "WTF\n";
+      }
       break;
     case UPD:
       n = replace(kvs, key, (void*) value);

@@ -16,9 +16,9 @@ int main(int argc, char const *argv[]) {
   // Beginning of the programm
   if (argc < 2) {printf("needs an IP address!\n"); return 1;}
   printf("\n\n");
-  printf("```````````````````````````````````````````````\n");
-  printf("`Welcome to the trivial client implementation!`\n");
-  printf("```````````````````````````````````````````````\n");
+  printf(GREEN_TXT("```````````````````````````````````````````````\n"));
+  printf(GREEN_TXT("`Welcome to the trivial client implementation!`\n"));
+  printf(GREEN_TXT("```````````````````````````````````````````````\n"));
   printf("\n\n");
 
   // connecting to the server
@@ -78,7 +78,7 @@ static void get() {
     printf("The corresponding value is: \n");
     printf("\t%s\n", getSecondParam(buffer));
   } else {
-    printf("Getting did not work\n");
+    printf(RED_TXT("Getting did not work\n"));
   }
 }
 
@@ -91,7 +91,7 @@ static void delete() {
   if (get_response_nr() == SUCCESS_DEL_NR) {
     printf("This key has vanished into thin air, as desired\n");
   } else {
-    printf("Hmm looks like that did not quite work\n");
+    printf(RED_TXT("Hmm looks like that did not quite work\n"));
   }
 }
 
@@ -120,7 +120,7 @@ static void put() {
   if (get_response_nr() == SUCCESS_PUT_NR) {
     printf("New key and value successfully set!\n");
   } else {
-    printf("Seems like something has failed here...");
+    printf(RED_TXT("Seems like something has failed here..."));
   }
 }
 
@@ -137,7 +137,7 @@ static void login() {
     printf("Succesfully logged in!\n");
     return;
   } else {
-    printf("Nope, that wasn't it. Try again.\n");
+    printf(RED_TXT("Nope, that wasn't it. Try again.\n"));
     login();
   }
 }
