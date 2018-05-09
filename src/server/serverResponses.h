@@ -28,7 +28,7 @@
 #define ERROR_LOGOUT_FAIL_NR      600
 #define ERROR_USER_OCCUPIED_NR    700
 #define ERROR_USERNAME_INVALID_NR 701
-#define ERROR_NO_ADMIN_MR         777
+#define ERROR_NO_ADMIN_NR         777
 #define ERROR_SERVER_FULL_NR      999
 
 /* ============ SUCCESS MESSAGES ================ */
