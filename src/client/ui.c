@@ -16,9 +16,9 @@ int main(int argc, char const *argv[]) {
   // Beginning of the programm
   if (argc < 2) {printf("needs an IP address!\n"); return 1;}
   printf("\n\n");
-  printf(GREEN_TXT("```````````````````````````````````````````````\n"));
-  printf(GREEN_TXT("`Welcome to the trivial client implementation!`\n"));
-  printf(GREEN_TXT("```````````````````````````````````````````````\n"));
+  printf(GREEN_TXT(BOLD "```````````````````````````````````````````````\n"));
+  printf(GREEN_TXT(BOLD "`Welcome to the trivial client implementation!`\n"));
+  printf(GREEN_TXT(BOLD "```````````````````````````````````````````````\n"));
   printf("\n\n");
 
   // connecting to the server
