@@ -54,7 +54,7 @@ int main(int argc, char const *argv[]) {
       put();
       continue;
     }
-    
+
     else if (!strcmp(input, "update")) {
 	  update();
 	  continue;
@@ -83,7 +83,7 @@ static void get() {
     printf("The corresponding value is: \n");
     printf("\t%s\n", getSecondParam(buffer));
   } else {
-    printf(RED_TXT("Getting did not work\n"));
+    print_error_message();
   }
 }
 
@@ -96,7 +96,7 @@ static void delete() {
   if (get_response_nr() == SUCCESS_DEL_NR) {
     printf("This key has vanished into thin air, as desired\n");
   } else {
-    printf(RED_TXT("Hmm looks like that did not quite work\n"));
+    print_error_message();
   }
 }
 
@@ -113,11 +113,14 @@ static void update() {
   if (get_response_nr() == SUCCESS_UPD_NR) {
     printf("Value to key successfully updated!\n");
   } else {
-    printf(RED_TXT("Seems like something has failed here..."));
+    print_error_message();
   }
 }
 
 static void quit() {
+  // TODO: implement logging out first (in server)
+  //printf("Logging out\n");
+  //c_send_TLS(LOGOUT(username));
   printf("Quitting\n");
   c_end_TLS();
   exit(0);
@@ -142,7 +145,7 @@ static void put() {
   if (get_response_nr() == SUCCESS_PUT_NR) {
     printf("New key and value successfully set!\n");
   } else {
-    printf(RED_TXT("Seems like something has failed here..."));
+    print_error_message();
   }
 }
 
@@ -172,9 +175,7 @@ static void add_user() {
   printf("Name for new user:\n");
   scanf("%s", input);
   strcpy(username, input);
-  printf("password new user:\n");
-  scanf("%s", input);
-  strcpy(password, input);
+  get_password("password new user:\n", password);
   c_send_TLS(ADD_U(username,password));
 
   c_receive_TLS(buffer);
@@ -182,7 +183,7 @@ static void add_user() {
   if (get_response_nr() == SUCCESS_ADD_U_NR) {
     printf("Congrats, you added User %s\n", username);
   } else {
-    printf("Guess what. It didn't work.\n");
+    print_error_message();
   }
 }
 
@@ -197,4 +198,50 @@ static int get_response_nr() {
     }
   }
   return atoi(response);
+}
+
+static void print_error_message() {
+  int n = get_response_nr();
+  switch (n) {
+    case ERROR_KEY_NOT_FOUND_NR:
+      printf(RED_TXT("There's no such key in site!\n"));
+      printf("Hint: Add it or look for another one.\n");
+      break;
+    case ERROR_KEY_INVALID_NR:
+      printf(RED_TXT("This key is not valid.\n"));
+      printf("Hint: it probably contained : or ; or some other weird stuff.\n");
+      break;
+    case ERROR_VALUE_INVALID_NR:
+      printf(RED_TXT("This value is not valid.\n"));
+      printf("Hint: it probably contained : or ; or some other weird stuff.\n");
+      break;
+    case ERROR_KEY_OCCUPIED_NR:
+      printf(RED_TXT("Too late! This key is already taken!\n"));
+      break;
+    case ERROR_ACCESS_DENIED_NR:
+      printf(RED_TXT("YOU SHALL NOT PASS! DEE-NIED! You don't have access to this.\n"));
+      printf("Hint: Probably not logged in or something.\n");
+      break;
+    case ERROR_LOGOUT_FAIL_NR:
+      printf(RED_TXT("You have not been logged out. Something failed\n"));
+      break;
+    case ERROR_USER_OCCUPIED_NR:
+      printf(RED_TXT("This username taken\n"));
+      break;
+    case ERROR_USERNAME_INVALID_NR:
+      printf(RED_TXT("This username is valid!\n"));
+      break;
+    case ERROR_NO_ADMIN_NR:
+      printf(RED_TXT("Sorry honey, you aint no admin!\n"));
+      printf("Hint: Buy the system admin chocolate and or vodka, maybe they will give you the rights.\n");
+      break;
+    case ERROR_SERVER_FULL_NR:
+      printf(RED_TXT("Oh boy, that server's full girl!\n"));
+      printf("Call the dev. This is bad.\n");
+      break;
+    default:
+      printf(RED_TXT("Congrats! You managed to make an error that the devs did not think of!\n"));
+      printf("Hint: no clue...\n");
+      break;
+  }
 }
