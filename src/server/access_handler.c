@@ -93,6 +93,7 @@ char* writer(char* key, char* value, int type) {
   pthread_mutex_lock(&kvs_lock);
   // TODO: Actually check for what the kvs is trying desperatley to let
   // you know
+  //komment
   switch (type) {
     case PUT:
       n = set(kvs, key, (void*) value);
