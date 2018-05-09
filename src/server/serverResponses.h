@@ -35,7 +35,7 @@
 #define SUCCESS_GOT(K,V) concatCode(SUCCESS_GOT_NR, 5, " GOT ", K, ":", V, ";\n")
 #define SUCCESS_PUT(K,V) concatCode(SUCCESS_PUT_NR, 5, " PUT ", K, ":", V, ";\n")
 #define SUCCESS_DEL(K,V) concatCode(SUCCESS_DEL_NR, 5, " DELETED ", K, ":", V, ";\n")
-#define SUCCESS_UPD(K,V) concatCode(SUCCESS_UPD_NR, 5, " UDATED ", K, ":", V, ";\n")
+#define SUCCESS_UPD(K,V) concatCode(SUCCESS_UPD_NR, 5, " UPDATED ", K, ":", V, ";\n")
 #define SUCCESS_LOGIN(U) concatCode(SUCCESS_LOGIN_NR, 3, " USER ", U, " LOGGED IN;\n")
 #define SUCCESS_LOGOUT  concatCode(SUCCESS_LOGOUT_NR, 1, " LOGOUT SUCCESSFUL;\n")
 #define SUCCESS_ADD_U(U) concatCode(SUCCESS_ADD_U_NR, 3, " USER ", U, " ADDED;\n")
@@ -57,7 +57,7 @@
 
 /* ============= OTHERS ======================== */
 #ifndef BYE
-#define BYE "BYE ;\n"
+  #define BYE "BYE ;\n"
 #endif
 
 
