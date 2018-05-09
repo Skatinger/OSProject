@@ -13,6 +13,8 @@ static void help();
 
 static void put();
 
+static void update();
+
 static void add_user();
 
 static void delete();
