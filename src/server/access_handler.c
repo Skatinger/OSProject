@@ -39,6 +39,7 @@ int login(char* password) {
   void* res;
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
+
   pthread_mutex_lock(&users_lock);
   if (checkCredentials(users, username, password)) {
     set_access_logged_in(users, username);
@@ -101,6 +102,14 @@ char* reader(char* key) {
   return value != NULL ? SUCCESS_GOT(key, value) : ERROR_KEY_NOT_FOUND(key);
 }
 
+//TODO implement level of access. atm everyone gets root access
+char* user_db_writer(char *username, char* password){
+  user_t* user = newUser(username, password, ADMIN);
+  addUser(user);
+  logger("added new user\n", INFO);
+  return SUCCESS_ADD_U(user);
+}
+
 char* writer(char* key, char* value, int type) {
   // TODO: error stuff
   char* ret;
@@ -122,11 +131,21 @@ char* writer(char* key, char* value, int type) {
   writer_waiting = TRUE;
   pthread_mutex_unlock(&counter_lock);
   pthread_mutex_lock(&kvs_lock);
+  // TODO: Actually check for what the kvs is trying desperatley to let
+  // you know
+  //komment
   switch (type) {
     case PUT:
       n = set(kvs, key, (void*) value);
-      if (n != SUCCESS) {/*allocate new kvs immediately!*/ }
-      ret = SUCCESS_PUT(key, value);
+      if (n == KEY_IN_USE_ERROR) {
+        ret = ERROR_KEY_OCCUPIED(key);
+      } else if (n == STORAGE_FULL_ERROR) {
+        ret = ERROR_SERVER_FULL;
+      } else if (n == SUCCESS) {
+        ret = SUCCESS_PUT(key, value);
+      } else {
+        ret = "WTF\n";
+      }
       break;
     case UPD:
       n = replace(kvs, key, (void*) value);

@@ -27,7 +27,7 @@
  * Structure with all necessary info for a user.
  * @member passwordHash the PBKDF2 generated hash of the user's pw
  * @member salt the corresponding salt
- * @memeber iter the number of iterations for this user in the pw hashing algo
+ * @member iter the number of iterations for this user in the pw hashing algorithm
  * @member rights indicating whether this user has admin rights
  * @member logged_in whether this user is currently logged in
  */

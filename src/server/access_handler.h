@@ -14,6 +14,8 @@ char* reader(char* key);
 
 char* writer(char* key, char* value, int action);
 
+char* user_db_writer(char *username, char* password);
+
 int login(char* password);
 
 void logout();
