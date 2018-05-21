@@ -170,11 +170,13 @@ static void login() {
 static void add_user() {
   char username[1024];
   char password[1024];
+  char c;
   //char* access_rights
   //todo validate root password again before allowing changes to user database
   printf("Name for new user:\n");
   scanf("%s", input);
   strcpy(username, input);
+  c = getchar();
   get_password("password new user:\n", password);
   c_send_TLS(ADD_U(username,password));
 
