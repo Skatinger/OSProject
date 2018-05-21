@@ -20,8 +20,4 @@ void logout();
 
 void end_access_handler();
 
-static int get_rights();
-
-static void print_access_rights();
-
 #endif

@@ -146,7 +146,6 @@ static char* parse_message(char* msg) {
     }
   }
 
-
   // and switching over it
   if (!strcmp(cmd, "GET")) {
     return reader(getFirstParam(msg));
@@ -170,7 +169,7 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "LOGOUT")) {
     logout();
   } else {
-    logger("Unknown commad to parse:", INFO);
+    logger("Unknown command to parse:", INFO);
     logger(cmd, INFO);
     logger("from message:", INFO);
     logger(msg, INFO);
@@ -184,6 +183,8 @@ static char* parse_message(char* msg) {
     connection_t* con_info = (connection_t*) arg;
     time_t last_active;
     int r;
+
+    int failed_times = 0;
 
     last_active = time(NULL);
 
@@ -207,13 +208,19 @@ static char* parse_message(char* msg) {
 
         if (!strcmp(msg, BYE)) {
           logger("Client ended the connection", INFO);
-          //logout();
+          logout();
           break;
         }
 
         s_write_TLS(con_info, msg);
       } else {
         logger("Reading seems to have failed", ERROR);
+        failed_times++;
+        if (failed_times > 5) {
+          logger("Failed more than 5 times. Ending connection now.");
+          logout();
+          break;
+        }
         sleep(5);
         continue;
       }

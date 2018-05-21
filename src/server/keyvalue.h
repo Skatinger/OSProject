@@ -18,8 +18,8 @@
 
 /* ==== structs =====*/
 typedef struct keyValuePair {
-  KEY_T key;
-  VALUE_T value;
+  char* key;
+  void* value;
 } keyValuePair;
 
 typedef struct KVS {
