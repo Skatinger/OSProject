@@ -9,31 +9,40 @@
 #include "authentification.h"
 
 
+int ITERATION_COUNT = 100000;
+user_db_t* db;
+// int global_count;
+// pthread_mutex_t* counterLock;
 
+void initUserHandler() {
+  // global_count = 0;
+  //pthread_mutex_init(counterLock, NULL);
+}
 
 user_db_t* initUserDB() {
-  user_db_t* db;
   db = malloc(sizeof(user_db_t));
   db->count = 0;
-  db->store = create(MAXUSERS);
-  // apparently this is a good value (google)
-  db->ITERATION_COUNT = 100000;
+  db->table = malloc(MAXUSERS * sizeof(user_t));
   return db;
 }
 
-static user_t* initUser(user_db_t* db) {
+user_t* initUser() {
   user_t* user = malloc(sizeof(user_t));
+  user->id = 0;
+  user->username = NULL;
   user->passwordHash = malloc(SHA_512_DIGEST_SIZE * sizeof(uint8_t));
   user->salt = malloc((SALT_LENGTH + 1) * sizeof(char));
-  user->iter = db->ITERATION_COUNT;
-  user->rights = NONE;
-  user->logged_in = FALSE;
+  user->iter = ITERATION_COUNT;
+  user->rights = 0;
   return user;
 }
 
-static user_t* newUser(user_db_t* db, char* password, int rights) {
-  user_t* user = initUser(db);
+user_t* newUser(char* username, char* password, int rights) {
+  user_t* user = initUser();
 
+
+  // TODO: check for validity...
+  user->username = username;
   user->rights = rights;
 
   if (RAND_bytes(user->salt, SALT_LENGTH) != 1) {
@@ -46,11 +55,12 @@ static user_t* newUser(user_db_t* db, char* password, int rights) {
 
   user->salt[SALT_LENGTH] = '\0';
 
+
   (*user).passwordHash = createHash(password, user->salt, user->iter);
   return user;
 }
 
-static uint8_t* createHash(char* password, uint8_t* salt, int iter) {
+uint8_t* createHash(char* password, uint8_t* salt, int iter) {
   unsigned char* out = malloc((SHA_512_DIGEST_SIZE + 1) * sizeof(char));
   memset(out,0,SHA_512_DIGEST_SIZE+1);
   if (PKCS5_PBKDF2_HMAC(password, strlen(password), /*(unsigned char*)*/ salt, SALT_LENGTH,
@@ -63,8 +73,8 @@ static uint8_t* createHash(char* password, uint8_t* salt, int iter) {
   }
 }
 
-int checkCredentials(user_db_t* db, char* username, char* password) {
-  user_t* user = getUserByName(db, username);
+int checkCredentials(char* username, char* password) {
+  user_t* user = getUserByName(username);
   if (user != NULL) {
     uint8_t* hash = createHash(password, user->salt, user->iter);
     for (int k = 0; k < SHA_512_DIGEST_SIZE; k++) {
@@ -72,10 +82,10 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
     }
     // This means the user has entered a correct password. In case the user
     // had an old iteration count, now is the time to change it.
-    if (user->iter < db->ITERATION_COUNT) {
+    if (user->iter < ITERATION_COUNT) {
       printf("%s used a lower iter \n", user->username);
       user->passwordHash = createHash(password, user->salt, ITERATION_COUNT);
-      user->iter = db->ITERATION_COUNT;
+      user->iter = ITERATION_COUNT;
       printf("User iter is now %d\n", user->iter);
     }
     return TRUE;
@@ -84,57 +94,26 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
   }
 }
 
-static user_t* getUserByName(user_db_t db, char* username) {
-  user_t* user;
-  user = (user_t*) get(db->store, username);
-  return user;
+user_t* getUserByName(char* username) {
+  // TODO: better data access
+  for (int i = 0; i < db->count; i++) {
+    if (!strcmp(db->table[i].username, username)) {
+      return &db->table[i];
+    }
+  }
+  return NULL;
 }
 
-int addUser(user_db_t* db, char* username, char* password, int rights) {
+int addUser(user_t* user) {
   db->count++;
-  user_t new_user;
-  new_user = newUser(db, password, rights);
-  int rep;
-  rep = set(db->store, username, (void*)new_user);
+  db->table[db->count-1] = *user;
 
-  if (rep == SUCCESS) {
-    return 0;
-  } else if (rep == KEY_IN_USE_ERROR) {
-    return ERROR_USERNAME_TAKEN;
-  } else {
-    return ERROR_GEN;
-  }
+  // pthread_mutex_lock(counterLock);
+  // global_count++;
+  // user->id = global_count;
+  // pthread_mutex_unlock(counterLock);
 
   return 0;
-}
-
-int get_access(user_db_t* db, char* username) {
-  user_t* user = getUserByName(db, username);
-  if (user == NULL || !user->logged_in) {
-    return NONE;
-  } else {
-    return user->rights;
-  }
-}
-
-int set_access_rights(user_db_t* db, char* username, int rights) {
-  user_t* user = getUserByName(db, username);
-  if (user == NULL || rights < NONE || rights > ADMIN) {
-    return 1;
-  } else {
-    user->rights = rights;
-    return 0;
-  }
-}
-
-int set_access_logged_in(user_db_t* db, char* username, int logged_in) {
-  user_t* user = getUserByName(db, username);
-  if (user == NULL || logged_in < FALSE || logged_in > TRUE) {
-    return 1;
-  } else {
-    user->logged_in = logged_in;
-    return 0;
-  }
 }
 
 char* bytesToHexString(uint8_t* bytes, int nbBytes) {
@@ -154,10 +133,9 @@ void printUser(user_t* user) {
   printf("USER INFO\n");
   printf("Name: %s, \nHash: %s, \nid: %d, \nsalt: %s, \niter: %d, \nrights: %d\n", user->username, hashString, user->id, saltString, user->iter, user->rights);
   printf("----------------------------\n");
-  free(saltString);
-  free(hashString);
+
 }
 
-void updateIterationCount(user_db_t* db, int newCount) {
-  db->ITERATION_COUNT = newCount;
+void updateIterationCount(int newCount) {
+  ITERATION_COUNT = newCount;
 }

@@ -18,8 +18,6 @@ char* user_db_writer(char *username, char* password);
 
 int login(char* password);
 
-void logout();
-
 void end_access_handler();
 
 #endif

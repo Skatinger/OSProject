@@ -17,7 +17,6 @@
 #define GREEN_TXT(string) COLOR_GREEN string COLOR_RESET
 
 
-
 char* concat(int num, ...);
 char* intToString(int num);
 char* concatCode(int code, int nbWords, ...);

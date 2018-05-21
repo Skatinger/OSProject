@@ -149,6 +149,7 @@ static char* parse_message(char* msg) {
     }
   }
 
+
   // and switching over it
   if (!strcmp(cmd, "GET")) {
     return reader(getFirstParam(msg));
@@ -165,16 +166,13 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "LOGIN")) {
     char* username = getFirstParam(msg);
     char* password = getSecondParam(msg);
-    printf("Logging in user %s\n", username);
     pthread_setspecific(USERNAME, (void*) username);
     int n = login(password);
     //free(password);
 
     return n == 0 ? SUCCESS_LOGIN(username) : ERROR_ACCESS_DENIED(username);
-  } else if (!strcmp(cmd, "LOGOUT")) {
-    logout();
   } else {
-    logger("Unknown command to parse:", INFO);
+    logger("Unknown commad to parse:", INFO);
     logger(cmd, INFO);
     logger("from message:", INFO);
     logger(msg, INFO);
@@ -190,14 +188,11 @@ static char* parse_message(char* msg) {
     int r;
     char* msg;
 
-    int failed_times = 0;
-
     last_active = time(NULL);
 
     // entering the main loop
-    while(difftime(time(NULL), last_active) < MAX_IDLE) {
+    while(difftime(time(NULL), last_active < MAX_IDLE)) {
       // try to read from the network
-      logger("trying to read from client", INFO);
       r = s_read_TLS(con_info);
 
       // now that the reading was successful, update the last active time
@@ -208,26 +203,16 @@ static char* parse_message(char* msg) {
         //logger(con_info->buffer, INFO);
         logger("Replying the following:", INFO);
 
-        char* msg = parse_message(con_info->buffer);
-        if (msg == NULL) continue;
-
+        msg = parse_message(con_info->buffer);
         logger(msg, INFO);
 
         if (!strcmp(msg, BYE)) {
           logger("Client ended the connection", INFO);
-          logout();
           break;
         }
-
         s_write_TLS(con_info, msg);
       } else {
         logger("Reading seems to have failed", ERROR);
-        failed_times++;
-        if (failed_times > 5) {
-          logger("Failed more than 5 times. Ending connection now.");
-          logout();
-          break;
-        }
         sleep(5);
         continue;
       }
