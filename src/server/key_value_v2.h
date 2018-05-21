@@ -1,33 +1,52 @@
-#ifndef HEADER_FILE
-#define HEADER_FILE
+#ifndef KV2_HEADER_FILE
+#define KV2_HEADER_FILE
 
 #include "../project.h"
 
-#define ALPHABET_SIZE 26
-//#define ERROR 0
-//#define SUCCESS 1
 #define SUCCESS 0
-#define STORAGE_FULL_ERROR 1
-#define KEY_NOT_FOUND_ERROR 2
-#define KEY_IN_USE_ERROR 3
-#define STORAGE_EMPTY_ERROR "Deleting failed -- storage is empty\n"
-#define KEY_NOT_FOUND_ERRORmsg "The desired key wasn't found\n"
+#define ERR 1
 
-#define BIGPRIME_1 1300391
-#define BIGPRIME_2 224443
+/* This is yet to be optimised */
+#define MAX_ADDRESS 4294967295 // 2^32 - 1
+#define SLOTS 16
+
 
 /* ==== structs =====*/
-typedef struct keyValuePair {
-  char* key;
+/**
+ * A pair of a key and a value.
+ */
+typedef struct key_value_pair {
+  void* key;
   void* value;
-} keyValuePair;
+} Kvp;
 
+/**
+ * A node in the hash circle, i.e. a virtual 'system', i.e. one of the possibly
+ * mutliple key value tables.
+ * Stored in a binary tree
+ */
+typedef struct node {
+  Kvp table[SLOTS];   // the actual content
+  Node* left;         // neighbours
+  Node* right;
+} Node;
+
+/**
+ * A binary tree that will be used to hold the tables currently available.
+ */
+typedef struct binary_tree {
+  int nbNodes;
+  Node* root;
+} BT;
+
+/**
+ *
+ */
 typedef struct KVS {
-    int size;
-    int load;
-    keyValuePair *key_table;
-    keyValuePair *value_table;
-
+  BT* key_nodes;          // where the stuff hashed by key will e
+  BT* value_nodes;
+  size_t key_size;
+  size_t value_size;
 } KVS;
 /* ==================== */
 

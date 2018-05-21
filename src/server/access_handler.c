@@ -7,9 +7,9 @@
 #include "../utils/logger.h"
 #include <string.h>
 
-static KVS* access_rights;
+static user_db_t* users;
 static KVS* kvs;
-static pthread_mutex_t access_rights_lock;
+static pthread_mutex_t users_lock;
 static pthread_mutex_t kvs_lock;
 static pthread_mutex_t counter_lock;
 static int writer_waiting;
@@ -20,52 +20,80 @@ static int STORE_SIZE = 1000;
 pthread_key_t* USERNAME;
 
 void init_access_handler(pthread_key_t* USERNAME_key) {
-  access_rights = create(MAX_CONNECTIONS);
+  users = initUserDB();
   kvs = create(STORE_SIZE);
   pthread_mutex_init(&kvs_lock, NULL);
-  pthread_mutex_init(&access_rights_lock, NULL);
+  pthread_mutex_init(&users_lock, NULL);
   pthread_mutex_init(&counter_lock, NULL);
+
+  // This is the key used to get the thread-global username.
   USERNAME = USERNAME_key;
+
   writer_waiting = FALSE;
   writer_done = FALSE;
   reader_count = 0;
-  //logger("adding a test kvp (bla)\n", INFO);
-  //set(kvs, "bla", (void*) "this is a test message. If you see it, very nice");
 }
 
 int login(char* password) {
+  // Getting the username from the thread-global USERNAME value
   void* res;
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
-  //printf("global username: %s", username);
-  user_t* user = getUserByName(username);
-  if (checkCredentials(username, password)) {
-    int rights;
-    if (user != NULL) rights = user->rights;
-    pthread_mutex_lock(&access_rights_lock);
-    set(access_rights, username, (void*)rights);
-    pthread_mutex_unlock(&access_rights_lock);
+
+  pthread_mutex_lock(&users_lock);
+  if (checkCredentials(users, username, password)) {
+    set_access_logged_in(users, username);
+    pthread_mutex_unlock(&users_lock);
     return 0;
   } else {
-    pthread_mutex_lock(&access_rights_lock);
-    set(access_rights, username, (void*)-1);
-    pthread_mutex_unlock(&access_rights_lock);
+    pthread_mutex_unlock(&users_lock);
     return -1;
   }
 }
 
+void logout() {
+  char* username;
+  username = (char*) pthread_getspecific(*USERNAME);
+  pthread_mutex_lock(&users_lock);
+  set_access_logged_in(users, username, FALSE);
+  pthread_mutex_unlock(&users_lock);
+}
+
 char* reader(char* key) {
+  char* username;
+  int rights;
   char* value;
+
+  username = (char*) pthread_getspecific(*USERNAME);
+
+  // if the user is not logged in, he may not read
+  pthread_mutex_lock(&users_lock);
+  if ((rights = get_access(users, username)) < 0) {
+    pthread_mutex_unlock(&users_lock);
+    return ERROR_ACCESS_DENIED(username);
+  }
+  pthread_mutex_unlock(&users_lock);
+
+  // lock the reader count and increment
   pthread_mutex_lock(&counter_lock);
   reader_count++;
+  // if this is the first reader or the writers are done and give back the db,
+  // acquire the lock for the kvs
   if (reader_count == 1 || writer_done) {
     pthread_mutex_lock(&kvs_lock);
     writer_done = FALSE;
   }
+  // unlock the counter
   pthread_mutex_unlock(&counter_lock);
+
+  // ACTUAL KVS ACCESS
   value = (char*) get(kvs, key);
+
+  // decrement the counter again
   pthread_mutex_lock(&counter_lock);
   reader_count--;
+
+  // if it was the last reader or there's a writer waiting, give back the lock
   if (reader_count == 0 || writer_waiting) {
     pthread_mutex_unlock(&kvs_lock);
     writer_waiting = FALSE;
@@ -87,6 +115,18 @@ char* writer(char* key, char* value, int type) {
   char* ret;
   char* whatever = malloc(BUFFER_SIZE * sizeof(char));
   int n;
+  char* username = (char*) pthread_getspecific(*USERNAME);
+  int rights;
+
+  // Check if user actually has access
+  pthread_mutex_lock(&users_lock);
+  if ((rights = get_access(users, username)) < 0) {
+    pthread_mutex_unlock(&users_lock);
+    return ERROR_ACCESS_DENIED(username);
+  }
+  pthread_mutex_unlock(&users_lock);
+
+
   pthread_mutex_lock(&counter_lock);
   writer_waiting = TRUE;
   pthread_mutex_unlock(&counter_lock);
@@ -125,6 +165,7 @@ char* writer(char* key, char* value, int type) {
   writer_done = TRUE;
   pthread_mutex_unlock(&counter_lock);
   pthread_mutex_unlock(&kvs_lock);
+
   return ret;
 }
 

@@ -2,72 +2,54 @@
 #define AUTHENTIFICATION
 
 #include "../project.h"
+#include "key_value.h"
+#include <stdint.h>
+#include <pthread.h>
 
 // ERRORS
 #define ERROR_USERNAME_TOO_LONG 1
+#define ERROR_USERNAME_TAKEN 2
+#define ERROR_GEN 3
 
 #define MAXUSERS 1000
 #define SALT_LENGTH 64
 #define ALPHABET_SIZE 26
 
-#define ADMIN 0
+#define ADMIN 1
+#define NORMAL 0
+#define NONE -1
 
 
 
 #define SHA_512_DIGEST_SIZE 64
 
-#include <stdint.h>
-#include <pthread.h>
-
-// TODO: think about overall structure. Maybe a struct holding all the user info?
-// That way, you could define a max amount of users and its easy to give a new user
-// an id -- just count the nbUsers and give the new one the next one.
-//
-// Maybe one also has to split this into authentication and a file accessing the
-// user info database. Especially since some protection is needed.
-// Moreover, check the user_t and import necessary libraries for SHA algorithm.
-//
-// Generally, the system has to be established. Currently, there are two user
-// levels: normal and admin. Do they have access to all KVS or just their own?
-// or a group of them? Depending on that, determining access is just a boolean
-// or a more complex function.
-// Perhaps, it would be best to have a generic implementation with a member
-// int rights, that determines the rights -- if we settle for just normal and
-// admins, that's also possible.
-
-// TODO: better interface for db -- use binary tree or hashTable or sth.
-
 /**
  * Structure with all necessary info for a user.
- * @member username the username string with max 30 chars
  * @member passwordHash the PBKDF2 generated hash of the user's pw
  * @member salt the corresponding salt
  * @member iter the number of iterations for this user in the pw hashing algorithm
  * @member rights indicating whether this user has admin rights
+ * @member logged_in whether this user is currently logged in
  */
 typedef struct {
-  int id;                 // unique id given by the system
-  char* username;
   uint8_t* passwordHash;
   uint8_t* salt;
   int iter;
-  int rights;             // 0 == adminRights, rest TBD
+  int rights;             // see macros
+  int logged_in;
 } user_t;
 
-
+/**
+ * Wrapper structure for the user database.
+ * @member count the number of users
+ * @member store the keyvaluestore used to store users.
+ * @member ITERATION_COUNT the usual iteration count used for hashing pws.
+ */
 typedef struct {
   int count;
-  user_t* table;
+  KVS* store;
+  int ITERATION_COUNT;
 } user_db_t;
-
-/**
- * Integer that counts the total number of all users, used for giving ids.
- * @return [description]
- */
-extern int global_count;
-extern pthread_mutex_t* counterLock;
-
-void initUserHandler();
 
 /**
  * Initialises the user database.
@@ -76,33 +58,30 @@ void initUserHandler();
 user_db_t* initUserDB();
 /**
  * Returns a pointer to a new empty user.
+ * @param db the db where the user will reside
  * @return pointer to an empty user
  */
-user_t* initUser();
+static user_t* initUser(user_db_t* db);
 
 /**
  * Creates a new user based on the given arguments
- * @param  username String (max 30 chars) for the username
+ * @param db the db where the user will be saved
  * @param  password in String form, hash will be calculated
  * @param  rights  integer info about the rights a user has (admin, nah, etc.)
  * @return          a pointer to the newly created user
  */
-user_t* newUser(char* username, char* password, int rights);
+static user_t* newUser(user_db_t* db, char* password, int rights);
 
 /**
- * Adds a new user to the database.
- * @param  user pointer to a user struct to be added
- * @return    0 if successful,
- *            1 if error
+ * Adds a new user to the database based on the given arguments.
+ * @param  db the database to add the user to
+ * @param username the username of the new user
+ * @param password the pw of the new user
+ * @param rights the rights this user gets
+ * @return    0 if successful, 1 if name too long, 2 if name taken, 3 for other
+ *              errors.
  */
-int addUser(user_t* user);
-
-/**
- * Find a user based on their unique id in the database.
- * @param  id the unique id
- * @return    a pointer to the user info struct
- */
-user_t* getUserById(int id);
+int addUser(user_db_t* db, char* username, char* password, int rights);
 
 /**
  * Get user based on their username.
@@ -110,23 +89,44 @@ user_t* getUserById(int id);
  * @param  username of the desired user
  * @return a pointer to the user info struct
  */
-user_t* getUserByName(char* username);
+static user_t* getUserByName(user_db_t* db, char* username);
 
 /**
  * Checks username and password with the database to determine acces rights.
  * Hashes the password to compare with the stored user_t.
+ * @param db the database to check in
  * @param  username the string with the username to test
  * @param  password string with the password to be checked
  * @return          FALSE if credentials are flase, TRUE if they are correct.
  */
-int checkCredentials(char* username, char* password);
+int checkCredentials(user_db_t* db, char* username, char* password);
 
 /**
  * Determines if the user has access // what kind of access
- * @param  user pointer to a user type
+ * @param db the database to check
+ * @param  username the username to check
  * @return      int specifing the type of access granted
+ *              ADMIN:  admin rights
+ *              NORMAL: rights of a normal user
+ *              NONE:   the user isn't logged in.
  */
-int hasAccess(user_t* user);
+int get_access(user_db_t* db, char* username);
+
+/**
+ * Sets the rights member of a user (i.e. if their rights are updated).
+ * @param  username the user to update
+ * @param  rights   their new rights
+ * @return          0 success, 1 otherwise
+ */
+int set_acces_rights(user_db_t* db, char* username, int rights);
+
+/**
+ * Sets the logged_in member of a user (i.e. if they are logged in).
+ * @param  username the user to update
+ * @param  logged_in   TRUE iff they're logged in
+ * @return          0 success, 1 otherwise
+ */
+int set_access_logged_in(user_db_t db, char* username, int logged_in)
 
 /**
  * Prints all the necessary user information to stdout.
@@ -157,7 +157,12 @@ char* bytesToHexString(uint8_t* bytes, int nbBytes);
  * @param  iter     the number of iterations to do
  * @return          the array with the byte hash
  */
-uint8_t* createHash(char* password, uint8_t* salt, int iter);
+static uint8_t* createHash(char* password, uint8_t* salt, int iter);
 
-void updateIterationCount(int newCount);
+/**
+ * Makes it possible to update the iteration count for the hash algorithm.
+ * @param db the concerned user db
+ * @param newCount the new iteration count.
+ */
+void updateIterationCount(user_db_t* db, int newCount);
 #endif

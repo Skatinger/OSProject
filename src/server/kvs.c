@@ -5,6 +5,9 @@
 
 
 
+
+
+
 /* ====== hashing ====== */
 int hashFunc (KVS *t, char *key) {
     int h;
