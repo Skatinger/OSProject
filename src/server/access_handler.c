@@ -1,8 +1,8 @@
 #include <semaphore.h>
 
-#include "serverResponses.h"
+#include "server_responses.h"
 #include "access_handler.h"
-#include "keyvalue.h"
+#include "key_value.h"
 #include "authentification.h"
 #include "../utils/logger.h"
 #include <string.h>
@@ -19,8 +19,9 @@ static int reader_count;
 static int STORE_SIZE = 1000;
 pthread_key_t* USERNAME;
 
-void init_access_handler(pthread_key_t* USERNAME_key) {
-  users = initUserDB();
+void init_access_handler(pthread_key_t* USERNAME_key, char* root_pw) {
+  users = init_user_db();
+  addUser(users, "root", root_pw, ADMIN);
   kvs = create(STORE_SIZE);
   pthread_mutex_init(&kvs_lock, NULL);
   pthread_mutex_init(&users_lock, NULL);
@@ -34,7 +35,7 @@ void init_access_handler(pthread_key_t* USERNAME_key) {
   reader_count = 0;
 }
 
-int login(char* password) {
+char* login(char* password) {
   // Getting the username from the thread-global USERNAME value
   void* res;
   res = pthread_getspecific(*USERNAME);
@@ -42,21 +43,23 @@ int login(char* password) {
 
   pthread_mutex_lock(&users_lock);
   if (checkCredentials(users, username, password)) {
-    set_access_logged_in(users, username);
+    set_access_logged_in(users, username, TRUE);
     pthread_mutex_unlock(&users_lock);
-    return 0;
+    return SUCCESS_LOGIN(username);
   } else {
     pthread_mutex_unlock(&users_lock);
-    return -1;
+    return ERROR_ACCESS_DENIED(username);
   }
 }
 
-void logout() {
+char* logout() {
   char* username;
   username = (char*) pthread_getspecific(*USERNAME);
   pthread_mutex_lock(&users_lock);
   set_access_logged_in(users, username, FALSE);
   pthread_mutex_unlock(&users_lock);
+
+  return SUCCESS_LOGOUT;
 }
 
 char* reader(char* key) {
@@ -102,12 +105,83 @@ char* reader(char* key) {
   return value != NULL ? SUCCESS_GOT(key, value) : ERROR_KEY_NOT_FOUND(key);
 }
 
-//TODO implement level of access. atm everyone gets root access
-char* user_db_writer(char *username, char* password){
-  user_t* user = newUser(username, password, ADMIN);
-  addUser(user);
-  logger("added new user\n", INFO);
-  return SUCCESS_ADD_U(user);
+char* user_db_new(char *username, char* password){
+  char* current_user;
+  current_user = (char*) pthread_getspecific(*USERNAME);
+
+  if (get_access(users, current_user) >= ADMIN) {
+    pthread_mutex_lock(&users_lock);
+    int r = addUser(users, username, password, NORMAL);
+    logger("added new user\n", INFO);
+    pthread_mutex_unlock(&users_lock);
+    if (r == SUCCESS) {
+      return SUCCESS_ADD_U(username);
+    } else if (r == ERROR_USERNAME_TOO_LONG) {
+      return ERROR_USERNAME_INVALID;
+    } else if (r == ERROR_USERNAME_TAKEN) {
+      return ERROR_USER_OCCUPIED(username);
+    } else {
+      return ERROR_USER_MODIFICATION;
+    }
+
+  } else {
+    return ERROR_NO_ADMIN(current_user);
+  }
+}
+
+char* user_db_delete(char* username) {
+  char* current_user;
+  current_user = (char*) pthread_getspecific(*USERNAME);
+
+  if (get_access(users, current_user) >= ADMIN) {
+    pthread_mutex_lock(&users_lock);
+    int r = delete_user(users, username);
+    logger("deleted user\n", INFO);
+    pthread_mutex_unlock(&users_lock);
+    return r == 0 ? SUCCESS_DEL_U(username) : ERROR_USER_MODIFICATION;
+  } else {
+    return ERROR_NO_ADMIN(current_user);
+  }
+}
+
+char* user_db_update(char* old_username, char* new_username, char* new_password) {
+  char* current_user;
+  current_user = (char*) pthread_getspecific(*USERNAME);
+
+  if (get_access(users, current_user) >= ADMIN) {
+    pthread_mutex_lock(&users_lock);
+    int r = update_user(users, old_username, new_username, new_password);
+    logger("deleted user\n", INFO);
+    pthread_mutex_unlock(&users_lock);
+    if (r == SUCCESS) {
+      return SUCCESS_CHG_U(old_username, new_username);
+    } else if (r == ERROR_USERNAME_TOO_LONG) {
+      return ERROR_USERNAME_INVALID;
+    } else if (r == ERROR_USERNAME_TAKEN) {
+      return ERROR_USER_OCCUPIED(new_username);
+    } else if (r == ERROR_USER_LOGGEDIN) {
+      return  ERROR_USER_NOT_UPDATABLE(new_username);
+    } else {
+      return ERROR_USER_MODIFICATION;
+    }
+  } else {
+    return ERROR_NO_ADMIN(current_user);
+  }
+}
+
+char* user_db_admin(char* username) {
+  char* current_user;
+  current_user = (char*) pthread_getspecific(*USERNAME);
+
+  if (get_access(users, current_user) >= ADMIN) {
+    pthread_mutex_lock(&users_lock);
+    int r = set_access_rights(users, username, ADMIN);
+    logger("deleted user\n", INFO);
+    pthread_mutex_unlock(&users_lock);
+    return r == SUCCESS ? SUCCESS_MK_ADM(username) : ERROR_USER_MODIFICATION;
+  } else {
+    return ERROR_NO_ADMIN(current_user);
+  }
 }
 
 char* writer(char* key, char* value, int type) {

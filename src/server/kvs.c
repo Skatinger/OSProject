@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "keyvalue.h"
+#include "key_value.h"
 
 
 
@@ -83,14 +83,14 @@ void* get(KVS *t, char *key) {
 
 //TODO throws segFault
 void* del(KVS *t, char *key) {
-    if (t->load == 0) return STORAGE_EMPTY_ERROR;
+    if (t->load == 0) return NULL;
     int index = hashFunc(t, key);
     int tmp = index;
     while(t->table[index].key != NULL && strcmp(t->table[index].key, key)){
         index += reHash(t, index);
         index = index % t->size;
         if (index == tmp) {
-            return (void*)KEY_NOT_FOUND_ERRORmsg;
+            return (void*)NULL;
         }
     }
     void* res = t->table[index].key!=NULL ? t->table[index].value : NULL;
@@ -128,7 +128,6 @@ keyValuePair initKVP() {
     keyValuePair *kvp = malloc(sizeof(keyValuePair));
     kvp->key = NULL;
     kvp->value = NULL;
-    kvp->next = NULL;
     return *kvp;
 }
 
@@ -149,9 +148,7 @@ void destroy(KVS* store){
     int i;
     keyValuePair *kvp1, *kvp2;
     for(i=0; i < store->size; i++){
-        kvp1 = (&store->table[i])->next;
-        while (kvp1 != NULL) { kvp2 = kvp1; kvp1 = kvp1->next; free(kvp2->key); free(kvp2); }
-        //free((&t->table[i])->key);
+        // TODO: free stuff
     }
     free(store);
 }

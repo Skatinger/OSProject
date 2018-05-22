@@ -25,8 +25,7 @@ typedef struct keyValuePair {
 typedef struct KVS {
     int size;
     int load;
-    keyValuePair *key_table;
-    keyValuePair *value_table;
+    keyValuePair *table;
 
 } KVS;
 /* ==================== */

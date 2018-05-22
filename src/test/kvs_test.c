@@ -5,7 +5,7 @@
 #include <string.h>
 #define KEY_T char*
 #define VALUE_T char*
-#include "../server/keyvalue.h"
+#include "../server/key_value.h"
 
 void test(){
     printf("testing KVS:\n");

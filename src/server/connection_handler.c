@@ -6,12 +6,11 @@
 #include <string.h>
 #include <time.h>
 #include "server.h"
-#include "connectionHandler.h"
-#include "serverResponses.h"
+#include "connection_handler.h"
+#include "server_responses.h"
 #include "../utils/logger.h"
 #include "../utils/string_stuff.h"
 #include "access_handler.h"
-#include "authentification.h"
 
 
 #if USE_TLS == TRUE
@@ -35,19 +34,15 @@ int main(int argc, char const *argv[]) {
   char c;
   pthread_t pid;
   char root_pw[100];
-  user_t* root;
 
   s_init_TLS();
   pthread_mutex_init(&counter_lock, NULL);
 
-  initUserDB();
   get_password("Enter a password for the root account please\n", root_pw);
   printf("Thanks.\n");
-  root = newUser("root", root_pw, ADMIN);
-  addUser(root);
 
   // new thread that waits for connections
-  pthread_create(&pid, NULL, accept_new_connections, NULL);
+  pthread_create(&pid, NULL, accept_new_connections, (void*)root_pw);
 
   // mechanism to stop the server
   c = getchar();
@@ -64,6 +59,8 @@ void* accept_new_connections(void* arg) {
   t_counter = 0; // counting
   pthread_t tid;
 
+  char* root_pw = (char*) arg;
+
   logger("Accepting connections now.", INFO);
 
   // this key can be used to give each thread a 'global' variable that is
@@ -73,7 +70,7 @@ void* accept_new_connections(void* arg) {
 
   // giving the acces handler this key, so it can tell what user is on the
   // current thread
-  init_access_handler(&USERNAME);
+  init_access_handler(&USERNAME, root_pw);
 
   // entering loop
   while(TRUE) {
@@ -134,7 +131,7 @@ void* handle_connection(void* arg) {
 }
 
 static char* parse_message(char* msg) {
-  char* cmd = malloc(6*sizeof(char));
+  char* cmd = malloc(7*sizeof(char));
 
   // TODO: check for validity of the message (use regex to see if valid
   // message according to protocol)
@@ -159,7 +156,13 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "UPD")) {
     return writer(getFirstParam(msg), getSecondParam(msg), UPD);
   } else if (!strcmp(cmd, "ADD_U")) {
-    return user_db_writer(getFirstParam(msg), getSecondParam(msg));
+    return user_db_new(getFirstParam(msg), getSecondParam(msg));
+  } else if (!strcmp(cmd, "DEL_U")) {
+    return user_db_delete(getFirstParam(msg));
+  } else if (!strcmp(cmd, "CHG_U")) {
+    return user_db_update(getFirstParam(msg), getSecondParam(msg), getThirdParam(msg));
+  } else if (!strcmp(cmd, "MK_ADM")) {
+    return user_db_admin(getFirstParam(msg));
   } else if (!strcmp(cmd, "BYE")) {
     return BYE;
   } else if (!strcmp(cmd, "LOGIN")) {
@@ -167,12 +170,9 @@ static char* parse_message(char* msg) {
     char* password = getSecondParam(msg);
     printf("Logging in user %s\n", username);
     pthread_setspecific(USERNAME, (void*) username);
-    int n = login(password);
-    //free(password);
-
-    return n == 0 ? SUCCESS_LOGIN(username) : ERROR_ACCESS_DENIED(username);
+    return login(password);
   } else if (!strcmp(cmd, "LOGOUT")) {
-    logout();
+    return logout();
   } else {
     logger("Unknown command to parse:", INFO);
     logger(cmd, INFO);
@@ -191,7 +191,6 @@ static char* parse_message(char* msg) {
     char* msg;
 
     int failed_times = 0;
-
     last_active = time(NULL);
 
     // entering the main loop
@@ -224,7 +223,7 @@ static char* parse_message(char* msg) {
         logger("Reading seems to have failed", ERROR);
         failed_times++;
         if (failed_times > 5) {
-          logger("Failed more than 5 times. Ending connection now.");
+          logger("Failed more than 5 times. Ending connection now.", ERROR);
           logout();
           break;
         }

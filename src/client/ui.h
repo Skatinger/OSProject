@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+#define ASCII_ART "Art by Tua Xiong\n                 \\ __\n--==/////////////[})))==*\n                 / \\ '          ,|\n                    `\\`\\      //|                             ,|\n                      \\ `\\  //,/'                           -~ |\n   )             _-~~~\\  |/ / |'|                       _-~  / ,\n  ((            /' )   | \\ / /'/                    _-~   _/_-~|\n (((            ;  /`  ' )/ /''                 _ -~     _-~ ,/'\n ) ))           `~~\\   `\\/'/|'           __--~~__--\\ _-~  _/, \n((( ))            / ~~    \\ /~      __--~~  --~~  __/~  _-~ /\n ((\\~\\           |    )   | '      /        __--~~  \\-~~ _-~\n    `\\(\\    __--(   _/    |'\\     /     --~~   __--~' _-~ ~|\n     (  ((~~   __-~        \\~\\   /     ___---~~  ~~\\~~__--~ \n      ~~\\~~~~~~   `\\-~      \\~\\ /           __--~~~'~~/\n                   ;\\ __.-~  ~-/      ~~~~~__\\__---~~ _..--._\n                   ;;;;;;;;'  /      ---~~~/_.-----.-~  _.._ ~\\     \n                  ;;;;;;;'   /      ----~~/         `\\,~    `\\ \\        \n                  ;;;;'     (      ---~~/         `:::|       `\\.      \n                  |'  _      `----~~~~'      /      `:|        ()))),      \n            ______/\\/~    |                 /        /         (((((())  \n          /~;;.____/;;'  /          ___.---(   `;;;/             )))'`))\n         / //  _;______;'------~~~~~    |;;/\\    /                ((   ( \n        //  \\ \\                        /  |  \\;;,\\                 `   \n       (<_    \\ \\                    /',/-----'  _> \n        \\_|     \\_                 //~;~~~~~~~~~ \n                 \\_|               (,~~   -Tua Xiong\n                                    \\~\n                                     ~~"
+
 /**
  * Hadles a login request by the user.
  * (I.e. sends the server a corresponding )
@@ -38,10 +40,20 @@ static void delete();
  */
 static void add_user();
 
+static void delete_user();
+static void update_user();
+static void make_admin();
+
 /**
  * This handles an update request by the user.
  */
 static void update();
+
+/**
+ * This handles a logout request by the user. i.e. this user is logged out
+ * and a login propmpt is openend.
+ */
+static void logout();
 
 /**
  * This reads the message the server has sent and reads the code of it,

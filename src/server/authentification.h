@@ -10,6 +10,7 @@
 #define ERROR_USERNAME_TOO_LONG 1
 #define ERROR_USERNAME_TAKEN 2
 #define ERROR_GEN 3
+#define ERROR_USER_LOGGEDIN 4
 
 #define MAXUSERS 1000
 #define SALT_LENGTH 64
@@ -42,7 +43,7 @@ typedef struct {
 /**
  * Wrapper structure for the user database.
  * @member count the number of users
- * @member store the keyvaluestore used to store users.
+ * @member store the key_valuestore used to store users.
  * @member ITERATION_COUNT the usual iteration count used for hashing pws.
  */
 typedef struct {
@@ -55,13 +56,13 @@ typedef struct {
  * Initialises the user database.
  * @return pointer to the new "db".
  */
-user_db_t* initUserDB();
+user_db_t* init_user_db();
 /**
  * Returns a pointer to a new empty user.
  * @param db the db where the user will reside
  * @return pointer to an empty user
  */
-static user_t* initUser(user_db_t* db);
+static user_t* init_user(user_db_t* db);
 
 /**
  * Creates a new user based on the given arguments
@@ -70,7 +71,7 @@ static user_t* initUser(user_db_t* db);
  * @param  rights  integer info about the rights a user has (admin, nah, etc.)
  * @return          a pointer to the newly created user
  */
-static user_t* newUser(user_db_t* db, char* password, int rights);
+static user_t* new_user(user_db_t* db, char* password, int rights);
 
 /**
  * Adds a new user to the database based on the given arguments.
@@ -82,6 +83,27 @@ static user_t* newUser(user_db_t* db, char* password, int rights);
  *              errors.
  */
 int addUser(user_db_t* db, char* username, char* password, int rights);
+
+/**
+ * This deletes the given user from the user database.
+ * @param  db       the database to delete from
+ * @param  username the user to delete
+ * @return          0 on success, ...
+ */
+int delete_user(user_db_t* db, char* username);
+
+/**
+ * This updates old_username. Afterwards, the user will have new_username and
+ * new_password as credentials.
+ * Only works when the user to change is not logged in.
+ * @param  db           the database to make the change on
+ * @param  old_username the user to update
+ * @param  new_username the  new username
+ * @param  new_password the new password
+ * @return              0 success, 1 name too long, 2 name taken, 3 others, 4
+ *                      if the user is currently logged in
+ */
+int update_user(user_db_t* db, char* old_username, char* new_username, char* new_password);
 
 /**
  * Get user based on their username.
@@ -118,7 +140,7 @@ int get_access(user_db_t* db, char* username);
  * @param  rights   their new rights
  * @return          0 success, 1 otherwise
  */
-int set_acces_rights(user_db_t* db, char* username, int rights);
+int set_access_rights(user_db_t* db, char* username, int rights);
 
 /**
  * Sets the logged_in member of a user (i.e. if they are logged in).
@@ -126,13 +148,20 @@ int set_acces_rights(user_db_t* db, char* username, int rights);
  * @param  logged_in   TRUE iff they're logged in
  * @return          0 success, 1 otherwise
  */
-int set_access_logged_in(user_db_t db, char* username, int logged_in)
+int set_access_logged_in(user_db_t* db, char* username, int logged_in);
 
 /**
  * Prints all the necessary user information to stdout.
  * @param user the user to print
  */
-void printUser(user_t* user);
+void printUser(char* username, user_t* user);
+
+/**
+ * Prints all the necessary user information to stdout.
+ * @param db the db the user's in.
+ * @param username the user to print
+ */
+void print_user(user_db_t* db, char* username);
 
 /**
  * Auxlilary function that takes an array of bytes and turns it into a human-

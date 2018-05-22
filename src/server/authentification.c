@@ -11,7 +11,7 @@
 
 
 
-user_db_t* initUserDB() {
+user_db_t* init_user_db() {
   user_db_t* db;
   db = malloc(sizeof(user_db_t));
   db->count = 0;
@@ -21,7 +21,7 @@ user_db_t* initUserDB() {
   return db;
 }
 
-static user_t* initUser(user_db_t* db) {
+static user_t* init_user(user_db_t* db) {
   user_t* user = malloc(sizeof(user_t));
   user->passwordHash = malloc(SHA_512_DIGEST_SIZE * sizeof(uint8_t));
   user->salt = malloc((SALT_LENGTH + 1) * sizeof(char));
@@ -31,8 +31,8 @@ static user_t* initUser(user_db_t* db) {
   return user;
 }
 
-static user_t* newUser(user_db_t* db, char* password, int rights) {
-  user_t* user = initUser(db);
+static user_t* new_user(user_db_t* db, char* password, int rights) {
+  user_t* user = init_user(db);
 
   user->rights = rights;
 
@@ -73,8 +73,8 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
     // This means the user has entered a correct password. In case the user
     // had an old iteration count, now is the time to change it.
     if (user->iter < db->ITERATION_COUNT) {
-      printf("%s used a lower iter \n", user->username);
-      user->passwordHash = createHash(password, user->salt, ITERATION_COUNT);
+      printf("%s used a lower iter \n", username);
+      user->passwordHash = createHash(password, user->salt, db->ITERATION_COUNT);
       user->iter = db->ITERATION_COUNT;
       printf("User iter is now %d\n", user->iter);
     }
@@ -84,7 +84,7 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
   }
 }
 
-static user_t* getUserByName(user_db_t db, char* username) {
+static user_t* getUserByName(user_db_t* db, char* username) {
   user_t* user;
   user = (user_t*) get(db->store, username);
   return user;
@@ -92,10 +92,10 @@ static user_t* getUserByName(user_db_t db, char* username) {
 
 int addUser(user_db_t* db, char* username, char* password, int rights) {
   db->count++;
-  user_t new_user;
-  new_user = newUser(db, password, rights);
+  user_t* user;
+  user = new_user(db, password, rights);
   int rep;
-  rep = set(db->store, username, (void*)new_user);
+  rep = set(db->store, username, (void*)user);
 
   if (rep == SUCCESS) {
     return 0;
@@ -107,6 +107,31 @@ int addUser(user_db_t* db, char* username, char* password, int rights) {
 
   return 0;
 }
+
+int delete_user(user_db_t* db, char* username) {
+  void* rep = del(db->store, username);
+  if (rep != NULL) {
+    db->count--;
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+int update_user(user_db_t* db, char* old_username, char* new_username, char* new_password) {
+  int rights = getUserByName(db, old_username)->rights;
+  int logged_in = getUserByName(db, old_username)->logged_in;
+
+  if (logged_in) return ERROR_USER_LOGGEDIN;
+
+  void* rep = del(db->store, old_username);
+  if (rep == NULL) {
+    return ERROR_GEN;
+  }
+
+  return addUser(db, new_username, new_password, rights);
+}
+
 
 int get_access(user_db_t* db, char* username) {
   user_t* user = getUserByName(db, username);
@@ -147,15 +172,21 @@ char* bytesToHexString(uint8_t* bytes, int nbBytes) {
   return hexString;
 }
 
-void printUser(user_t* user) {
+void printUser(char* username, user_t* user) {
   char* saltString = bytesToHexString(user->salt, SALT_LENGTH);
   char* hashString = bytesToHexString(user->passwordHash, SHA_512_DIGEST_SIZE);
   printf("----------------------------\n");
   printf("USER INFO\n");
-  printf("Name: %s, \nHash: %s, \nid: %d, \nsalt: %s, \niter: %d, \nrights: %d\n", user->username, hashString, user->id, saltString, user->iter, user->rights);
+  printf("Name: %s, \nHash: %s, \nsalt: %s, \niter: %d, \nrights: %d\n", username, hashString, saltString, user->iter, user->rights);
   printf("----------------------------\n");
   free(saltString);
   free(hashString);
+}
+
+void print_user(user_db_t* db, char* username) {
+  user_t* user = getUserByName(db, username);
+  if (user != NULL) printUser(username, user);
+  else printf("User not found");
 }
 
 void updateIterationCount(user_db_t* db, int newCount) {

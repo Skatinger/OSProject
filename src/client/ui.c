@@ -2,9 +2,10 @@
 #include <string.h>
 #include "ui.h"
 #include "client.h"
-#include "clientRequests.h"
-#include "../server/serverResponses.h"
+#include "client_requests.h"
+#include "../server/server_responses.h"
 #include "../utils/string_stuff.h"
+#include "../utils/logger.h"
 
 static char username[100];
 static char password[100];
@@ -16,10 +17,16 @@ int main(int argc, char const *argv[]) {
   // Beginning of the programm
   if (argc < 2) {printf("needs an IP address!\n"); return 1;}
   printf("\n\n");
+  printf(GREEN_TXT(BOLD ASCII_ART));
+  printf("\n\n");
   printf(GREEN_TXT(BOLD "```````````````````````````````````````````````\n"));
   printf(GREEN_TXT(BOLD "`Welcome to the trivial client implementation!`\n"));
   printf(GREEN_TXT(BOLD "```````````````````````````````````````````````\n"));
-  printf("\n\n");
+  printf("\n");
+  printf(GREEN_TXT("Like this Greek mythological messenger, it will carry\n"));
+  printf(GREEN_TXT("what you have to say to the server!\n\n"));
+
+
 
   // connecting to the server
   printf(">> Trying to connect to %s\n", argv[1]);
@@ -43,6 +50,7 @@ int main(int argc, char const *argv[]) {
 
     else if (!strcmp(input, "quit")) {
       quit();
+      continue;
     }
 
     else if (!strcmp(input, "get")) {
@@ -52,6 +60,7 @@ int main(int argc, char const *argv[]) {
 
     else if (!strcmp(input, "put")) {
       put();
+      //logger("after put()", INFO);
       continue;
     }
 
@@ -62,10 +71,31 @@ int main(int argc, char const *argv[]) {
 
     else if (!strcmp(input, "addUser")) {
       add_user();
+      //logger("after add_user", INFO);
+      continue;
     }
 
+    else if(!strcmp(input, "deleteUser")) {
+      delete_user();
+      continue;
+    }
+
+    else if (!strcmp(input, "updateUser")) {
+      update_user();
+      continue;
+    }
+
+    else if(!strcmp(input, "makeAdmin")) {
+      make_admin();
+      continue;
+    }
     else if (!strcmp(input, "delete")) {
       delete();
+      continue;
+    }
+
+    else if (!strcmp(input, "logout")) {
+      logout();
       continue;
     }
 
@@ -119,8 +149,8 @@ static void update() {
 
 static void quit() {
   // TODO: implement logging out first (in server)
-  //printf("Logging out\n");
-  //c_send_TLS(LOGOUT(username));
+  printf("Logging out\n");
+  c_send_TLS(LOGOUT(username));
   printf("Quitting\n");
   c_end_TLS();
   exit(0);
@@ -128,7 +158,9 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * update \n \t * delete\n \t * addUser\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * update \n \t * delete\n \t * logout\n \t * quit\n\n");
+  printf("If you have admin rights, you can also do the following:\n");
+  printf("\t * addUser\n \t * makeAdmin\n \t * updateUser\n\n");
 }
 
 static void put() {
@@ -146,6 +178,7 @@ static void put() {
     printf("New key and value successfully set!\n");
   } else {
     print_error_message();
+    logger("put(): printed error", INFO);
   }
 }
 
@@ -186,11 +219,88 @@ static void add_user() {
     printf("Congrats, you added User %s\n", username);
   } else {
     print_error_message();
+    //logger("add_user(): after error", INFO);
   }
 }
 
+static void delete_user() {
+  char username[1024];
+  char c;
+  //char* access_rights
+  //todo validate root password again before allowing changes to user database
+  printf("Please enter the username of the user you want to delete:\n");
+  scanf("%s", input);
+  strcpy(username, input);
+
+  c_send_TLS(DEL_U(username));
+  c_receive_TLS(buffer);
+
+  if (get_response_nr() == SUCCESS_DEL_U_NR) {
+    printf("Congrats, you deleted User %s\n", username);
+  } else {
+    print_error_message();
+    //logger("delete_user(): after error", INFO);
+  }
+}
+
+static void make_admin() {
+  char username[1024];
+  char c;
+  //char* access_rights
+  //todo validate root password again before allowing changes to user database
+  printf("Please enter the username of the user you want make an admin:\n");
+  scanf("%s", input);
+  strcpy(username, input);
+
+  c_send_TLS(MK_ADMIN(username));
+  c_receive_TLS(buffer);
+
+  if (get_response_nr() == SUCCESS_MK_ADM_NR) {
+    printf("Congrats, you made User %s admin\n", username);
+  } else {
+    print_error_message();
+    //logger("mkadm(): after error", INFO);
+  }
+}
+
+static void update_user() {
+  char old_username[1024];
+  char new_username[1024];
+  char new_password[1024];
+  char c;
+  //char* access_rights
+  //todo validate root password again before allowing changes to user database
+  printf("Which user do you want to update? Enter their username, please:\n");
+  scanf("%s", input);
+  strcpy(old_username, input);
+  printf("What should their new username be?\n");
+  scanf("%s", input);
+  strcpy(new_username, input);
+  c = getchar();
+  get_password("Enter the new password:\n", password);
+  c_send_TLS(CHG_U(old_username, new_username, password));
+
+  c_receive_TLS(buffer);
+
+  if (get_response_nr() == SUCCESS_CHG_U_NR) {
+    printf("Congrats, you updated User %s to %s\n", old_username, new_username);
+  } else {
+    print_error_message();
+    //logger("upd_user(): after error", INFO);
+  }
+}
+
+
+static void logout() {
+  printf("Logging you out\n");
+  c_send_TLS(LOGOUT(username));
+  c_receive_TLS(buffer);
+  printf("You may now login with a different account\n");
+  login();
+}
+
 static int get_response_nr() {
-  char response[3];
+  char response[4];
   for (int i = 0; i < strlen(buffer); i++) {
     if (buffer[i] == ' ') {
       response[i] = 0;
@@ -206,7 +316,7 @@ static void print_error_message() {
   int n = get_response_nr();
   switch (n) {
     case ERROR_KEY_NOT_FOUND_NR:
-      printf(RED_TXT("There's no such key in site!\n"));
+      printf(RED_TXT("There's no such key in sight!\n"));
       printf("Hint: Add it or look for another one.\n");
       break;
     case ERROR_KEY_INVALID_NR:
@@ -234,16 +344,23 @@ static void print_error_message() {
       printf(RED_TXT("This username is valid!\n"));
       break;
     case ERROR_NO_ADMIN_NR:
-      printf(RED_TXT("Sorry honey, you aint no admin!\n"));
+      printf(RED_TXT("Sorry honey, you ain't no admin!\n"));
       printf("Hint: Buy the system admin chocolate and or vodka, maybe they will give you the rights.\n");
       break;
     case ERROR_SERVER_FULL_NR:
       printf(RED_TXT("Oh boy, that server's full girl!\n"));
       printf("Call the dev. This is bad.\n");
       break;
+    case ERROR_USER_MODIFICATION_NR:
+      printf(RED_TXT("The modification you tried to make somehow failed. Perhaps this user doesn't exist.\n"));
+      break;
+    case ERROR_USER_NOT_UPDATABLE_NR:
+      printf(RED_TXT("Nope, can't update while this user is logged in.\n"));
+      break;
     default:
       printf(RED_TXT("Congrats! You managed to make an error that the devs did not think of!\n"));
       printf("Hint: no clue...\n");
       break;
   }
+  //logger("Printed error", INFO);
 }

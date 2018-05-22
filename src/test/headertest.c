@@ -1,4 +1,4 @@
-#include "../server/serverResponses.h"
+#include "../server/server_responses.h"
 #include <stdio.h>
 
 int main() {

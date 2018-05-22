@@ -8,7 +8,8 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "client.h"
-#include "clientRequests.h"
+#include "client_requests.h"
+#include "../utils/logger.h"
 
 
 
@@ -116,6 +117,7 @@ int c_receive_TLS(char buffer[BUFFER_SIZE]) {
     return n - 1;
   } else {
     buffer[n] = 0;
+    logger(buffer, INFO);
     return 0;
   }
 }
