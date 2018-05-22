@@ -35,6 +35,7 @@ int main(int argc, char const *argv[]) {
   pthread_t pid;
   char root_pw[100];
 
+  init_logger("server", FALSE);
   s_init_TLS();
   pthread_mutex_init(&counter_lock, NULL);
 
@@ -49,6 +50,7 @@ int main(int argc, char const *argv[]) {
   if (c == 'c') {
     printf("Stopping.\n");
     end_access_handler();
+    close_logger();
     exit(0);
   }
 
@@ -93,11 +95,11 @@ void* accept_new_connections(void* arg) {
       } else {
         // counter test done
         pthread_mutex_unlock(&counter_lock);
-        logger("Can't accept any more connections atm", ERROR);
+        logger("Can't accept any more connections atm", LOGERROR);
         sleep(RETRIAL_TIME);
       }
     #else
-      logger("Trying to connect w/o TLS :0", ERROR);
+      logger("Trying to connect w/o TLS :0", LOGERROR);
       break;
     #endif
   }
@@ -124,7 +126,7 @@ void* handle_connection(void* arg) {
       logger(concat(2, "Reading from socket ", intToString(con_info->socket_descriptor)), INFO);
       //logger(con_info->buffer, INFO);
     } else {
-      logger("Reading seems to have failed", ERROR);
+      logger("Reading seems to have failed", LOGERROR);
       continue;
     }
   }
@@ -168,7 +170,8 @@ static char* parse_message(char* msg) {
   } else if (!strcmp(cmd, "LOGIN")) {
     char* username = getFirstParam(msg);
     char* password = getSecondParam(msg);
-    printf("Logging in user %s\n", username);
+    logger("Logging in user %s\n", INFO);
+    logger(username, INFO);
     pthread_setspecific(USERNAME, (void*) username);
     return login(password);
   } else if (!strcmp(cmd, "LOGOUT")) {
@@ -220,10 +223,10 @@ static char* parse_message(char* msg) {
 
         s_write_TLS(con_info, msg);
       } else {
-        logger("Reading seems to have failed", ERROR);
+        logger("Reading seems to have failed", LOGERROR);
         failed_times++;
         if (failed_times > 5) {
-          logger("Failed more than 5 times. Ending connection now.", ERROR);
+          logger("Failed more than 5 times. Ending connection now.", LOGERROR);
           logout();
           break;
         }

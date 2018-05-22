@@ -28,6 +28,7 @@ static user_t* init_user(user_db_t* db) {
   user->iter = db->ITERATION_COUNT;
   user->rights = NONE;
   user->logged_in = FALSE;
+  user->current_thread = NULL;
   return user;
 }
 
@@ -135,10 +136,23 @@ int update_user(user_db_t* db, char* old_username, char* new_username, char* new
 
 int get_access(user_db_t* db, char* username) {
   user_t* user = getUserByName(db, username);
-  if (user == NULL || !user->logged_in) {
+
+  pthread_t calling_thread = pthread_self();
+  if (user == NULL || !user->logged_in || !pthread_equal(calling_thread, *user->current_thread)) {
     return NONE;
   } else {
     return user->rights;
+  }
+}
+
+int get_logged_in(user_db_t* db, char* username) {
+  user_t* user = getUserByName(db, username);
+
+  pthread_t calling_thread = pthread_self();
+  if (user == NULL) {
+    return FALSE;
+  } else {
+    return user->logged_in;
   }
 }
 
@@ -154,10 +168,13 @@ int set_access_rights(user_db_t* db, char* username, int rights) {
 
 int set_access_logged_in(user_db_t* db, char* username, int logged_in) {
   user_t* user = getUserByName(db, username);
+  pthread_t* calling_thread = malloc(sizeof(pthread_t));
+  *calling_thread = pthread_self();
   if (user == NULL || logged_in < FALSE || logged_in > TRUE) {
     return 1;
   } else {
     user->logged_in = logged_in;
+    user->current_thread = logged_in ? calling_thread : NULL;
     return 0;
   }
 }

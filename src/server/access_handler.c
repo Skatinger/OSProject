@@ -41,13 +41,26 @@ char* login(char* password) {
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
 
+  logger("Acquiring user lock", INFO);
   pthread_mutex_lock(&users_lock);
+  if (get_logged_in(users, username)) {
+    logger(concat(2, username, "already logged in"), INFO);
+    pthread_mutex_unlock(&users_lock);
+    logger("User lock unlocked", INFO);
+    return ERROR_ALREADY_LOGGEDIN(username);
+  }
   if (checkCredentials(users, username, password)) {
+    logger(concat(2, "Setting logged_in to TRUE for ", username), INFO);
+    pthread_t* this_thread = malloc(sizeof(pthread_t));
+    // *this_thread = pthread_self();
+    // logger(concat(2, "Current thread is ", intToString(*this_thread), INFO);
     set_access_logged_in(users, username, TRUE);
     pthread_mutex_unlock(&users_lock);
+    logger("User lock unlocked", INFO);
     return SUCCESS_LOGIN(username);
   } else {
     pthread_mutex_unlock(&users_lock);
+    logger("user lock unlocked", INFO);
     return ERROR_ACCESS_DENIED(username);
   }
 }
@@ -56,6 +69,14 @@ char* logout() {
   char* username;
   username = (char*) pthread_getspecific(*USERNAME);
   pthread_mutex_lock(&users_lock);
+
+  // If the caller doesn't actually have access,
+  // they should not be allowed to log out, hence return 
+  if (get_access(users, username) < NORMAL) {
+    pthread_mutex_unlock(&users_lock);
+    // TODO: perhaps give error message here.
+    return SUCCESS_LOGOUT;
+  }
   set_access_logged_in(users, username, FALSE);
   pthread_mutex_unlock(&users_lock);
 

@@ -65,10 +65,13 @@ static void c_init_TLS() {
   SSL_load_error_strings();
 
   socket_descriptor = c_create_socket();
-  printf("-- Created socket --\n");
+  logger("-- Created socket --", INFO);
 
   ctx = c_create_context();
+  logger("-- Created context --", INFO);
+
   tls = SSL_new(ctx);
+  logger("-- Created TLS --", INFO);
 }
 
 int c_connect_TLS(char* ip_address) {
@@ -85,13 +88,13 @@ int c_connect_TLS(char* ip_address) {
     c_TLS_error("Joining TLS with Socket failed", TRUE);
     return 1;
   }
-  printf("-- Joined socket with tls -- \n");
+  logger("-- Joined socket with tls --", INFO);
 
   if (SSL_connect(tls) <= 0) {
     c_TLS_error("TLS connection failed", TRUE);
     return 1;
   }
-  printf("-- Connected to server -- \n");
+  logger("-- Connected to server --", INFO);
   return 0;
 }
 
@@ -174,7 +177,7 @@ static void c_TLS_error(char* error_msg, int exit_program) {
   // get all SSL error messages
   while ((err = ERR_get_error()) != 0) {
     ERR_error_string_n(err, buf, sizeof(buf));
-    printf("*** %s\n", buf);
+    logger(concat(2, "***", buf), LOGERROR);
   }
 
   perror(error_msg);

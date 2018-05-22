@@ -8,7 +8,7 @@
 
 
 #define INFO 0
-#define ERROR 1
+#define LOGERROR 1
 
 /**
  * Logs the message with the given priority / importance
@@ -17,7 +17,9 @@
  */
 void logger(char* message, int type);
 
-void init_logger(char* name);
+void init_logger(char* name, int file_only);
+
+void close_logger();
 
 static char* time_string();
 

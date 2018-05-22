@@ -14,6 +14,7 @@ static char input[1024];
 static char c;
 
 int main(int argc, char const *argv[]) {
+  init_logger("client", TRUE);
   // Beginning of the programm
   if (argc < 2) {printf("needs an IP address!\n"); return 1;}
   printf("\n\n");
@@ -30,17 +31,21 @@ int main(int argc, char const *argv[]) {
 
   // connecting to the server
   printf(">> Trying to connect to %s\n", argv[1]);
+  logger("IP-address of server:", INFO);
+  logger(argv[1], INFO);
   c_connect_TLS(argv[1]);
 
   // and login
+  logger("Asking user to login", INFO);
   login();
 
   // now entering "main loop", where the cmdline waits for user input
   // and processes it with the corresponding functions.
   printf("Enter a command. 'help' will print help.\n");
   while (TRUE) {
-    printf("$ ");
+    printf("\n$ ");
     scanf("%s", input);
+    logger(concat(2, "UINPUT: ", input), INFO);
 
     // CASE DISTINCTION:
     if (!strcmp(input, "help")) {
@@ -106,8 +111,10 @@ int main(int argc, char const *argv[]) {
 static void get() {
   printf("Specify the key you want to get\n");
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   c_send_TLS(GET(input));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_GOT_NR) {
     printf("The corresponding value is: \n");
@@ -120,8 +127,10 @@ static void get() {
 static void delete() {
   printf("Specify the key you want to delete\n");
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   c_send_TLS(DEL(input));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_DEL_NR) {
     printf("This key has vanished into thin air, as desired\n");
@@ -134,11 +143,14 @@ static void update() {
   char key[1024];
   printf("Specify the key you want to update\n");
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   strcpy(key, input);
   printf("And the value for key %s\n", key);
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   c_send_TLS(UPD(key, input));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_UPD_NR) {
     printf("Value to key successfully updated!\n");
@@ -150,9 +162,11 @@ static void update() {
 static void quit() {
   // TODO: implement logging out first (in server)
   printf("Logging out\n");
+  logger("logging out & quitting", INFO);
   c_send_TLS(LOGOUT(username));
   printf("Quitting\n");
   c_end_TLS();
+  close_logger();
   exit(0);
 }
 
@@ -167,12 +181,15 @@ static void put() {
   char key[1024];
   printf("Specify the key you want to add\n");
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   strcpy(key, input);
   printf("key %s accepted\n", input);
   printf("And the value for key %s\n", key);
   scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
   c_send_TLS(PUT(key, input));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_PUT_NR) {
     printf("New key and value successfully set!\n");
@@ -190,13 +207,18 @@ static void login() {
   printf("Thanks. Checking ...\n");
 
   c_send_TLS(LOGIN(username, password));
+  memset(password, 0, 100);
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
   if (!strcmp(buffer, SUCCESS_LOGIN(username))) {
     printf("Succesfully logged in!\n");
     return;
+  } else if (!strcmp(buffer, ERROR_ALREADY_LOGGEDIN(username))) {
+    print_error_message();
+    //login();
   } else {
     printf(RED_TXT("Nope, that wasn't it. Try again.\n"));
-    login();
+    //login();
   }
 }
 
@@ -214,6 +236,7 @@ static void add_user() {
   c_send_TLS(ADD_U(username,password));
 
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_ADD_U_NR) {
     printf("Congrats, you added User %s\n", username);
@@ -234,6 +257,7 @@ static void delete_user() {
 
   c_send_TLS(DEL_U(username));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_DEL_U_NR) {
     printf("Congrats, you deleted User %s\n", username);
@@ -254,6 +278,7 @@ static void make_admin() {
 
   c_send_TLS(MK_ADMIN(username));
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_MK_ADM_NR) {
     printf("Congrats, you made User %s admin\n", username);
@@ -281,6 +306,7 @@ static void update_user() {
   c_send_TLS(CHG_U(old_username, new_username, password));
 
   c_receive_TLS(buffer);
+  logger(concat(2, "server replied ", buffer), INFO);
 
   if (get_response_nr() == SUCCESS_CHG_U_NR) {
     printf("Congrats, you updated User %s to %s\n", old_username, new_username);
@@ -293,6 +319,7 @@ static void update_user() {
 
 static void logout() {
   printf("Logging you out\n");
+  logger("User logging out\n", INFO);
   c_send_TLS(LOGOUT(username));
   c_receive_TLS(buffer);
   printf("You may now login with a different account\n");
@@ -331,7 +358,9 @@ static void print_error_message() {
       printf(RED_TXT("Too late! This key is already taken!\n"));
       break;
     case ERROR_ACCESS_DENIED_NR:
-      printf(RED_TXT("YOU SHALL NOT PASS! DEE-NIED! You don't have access to this.\n"));
+      printf(RED_TXT("DEEE-NIED!\n"));
+      printf(RED_TXT(BOLD "\n                           ,---.\n                          /    |\n                         /     |\n     Gandalf            /      |\n                       /       |\n                  ___,'        |\n                <  -'          :\n                 `-.__..--'``-,_\\_\n                    |o/ <o>` :,.)_`>\n                    :/ `     ||/)\n                    (_.).__,-` |\\\n                    /( `.``   `| :\n                    \\'`-.)  `  ; ;\n                    | `       /-<\n                    |     `  /   `.\n    ,-_-..____     /|  `    :__..-'\\\n   /,'-.__\\\\  ``-./ :`      ;       \\\n   `\\ `\\  `\\\\  \\ :  (   `  /  ,   `. \\\n     \\` \\   \\\\   |  | `   :  :     .\\ \\\n      \\ `\\_  ))  :  ;     |  |      ): :\n     (`-.-'\\ ||  |\\ \\   ` ;  ;       | |\n      \\-_   `;;._   ( `  /  /_       | |\n       `-.-.// ,'`-._\\__/_,'         ; |\n          \\:: :     /     `     ,   /  |\n           || |    (        ,' /   /   |\n           ||                ,'   / SSt|\n\n"));
+      printf(RED_TXT("YOU SHALL NOT PASS! You don't have access to this.\n"));
       printf("Hint: Probably not logged in or something.\n");
       break;
     case ERROR_LOGOUT_FAIL_NR:
@@ -356,6 +385,10 @@ static void print_error_message() {
       break;
     case ERROR_USER_NOT_UPDATABLE_NR:
       printf(RED_TXT("Nope, can't update while this user is logged in.\n"));
+      break;
+    case ERROR_ALREADY_LOGGEDIN_NR:
+      printf(RED_TXT("Thise usere ise alredy loggede ine, scusi...\n"));
+      printf("Hint: log out on the other machine first.\n");
       break;
     default:
       printf(RED_TXT("Congrats! You managed to make an error that the devs did not think of!\n"));

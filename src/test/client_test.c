@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   } else {
     c_end_TLS();
-    logger("guess we got a wrong message", ERROR);
+    logger("guess we got a wrong message", LOGERROR);
   }
 
   return 0;

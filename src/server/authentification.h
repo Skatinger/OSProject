@@ -38,6 +38,7 @@ typedef struct {
   int iter;
   int rights;             // see macros
   int logged_in;
+  pthread_t* current_thread;
 } user_t;
 
 /**
@@ -124,7 +125,9 @@ static user_t* getUserByName(user_db_t* db, char* username);
 int checkCredentials(user_db_t* db, char* username, char* password);
 
 /**
- * Determines if the user has access // what kind of access
+ * Determines if the user has access / what kind of access. It also
+ * checks if the calling thread is the one that originally logged in the user.
+ * If not, the user doesn't have access.
  * @param db the database to check
  * @param  username the username to check
  * @return      int specifing the type of access granted
@@ -135,6 +138,16 @@ int checkCredentials(user_db_t* db, char* username, char* password);
 int get_access(user_db_t* db, char* username);
 
 /**
+ * Returns the content of the logged_in member in the user struct. I.e., this
+ * says if the user is logged in in any thread.
+ * This does not check if the current thread is the correct one!
+ * @param  db       the database to query
+ * @param  username the user's username
+ * @return          if the user's logged in anywhere
+ */
+int get_logged_in(user_db_t* db, char* username);
+
+/**
  * Sets the rights member of a user (i.e. if their rights are updated).
  * @param  username the user to update
  * @param  rights   their new rights
@@ -143,7 +156,8 @@ int get_access(user_db_t* db, char* username);
 int set_access_rights(user_db_t* db, char* username, int rights);
 
 /**
- * Sets the logged_in member of a user (i.e. if they are logged in).
+ * Sets the logged_in member of a user (i.e. if they are logged in). It also
+ * saves the thread that logged the user in (or NULL, if this is used to log *out*).
  * @param  username the user to update
  * @param  logged_in   TRUE iff they're logged in
  * @return          0 success, 1 otherwise
