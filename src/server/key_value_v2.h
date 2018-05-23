@@ -7,7 +7,7 @@
 #define ERR 1
 
 /* This is yet to be optimised */
-#define MAX_ADDRESS 4294967295 // 2^32 - 1
+#define MAX_ADDRESS 4294967296 // 2^32 - 1
 #define SLOTS 16
 
 
@@ -16,7 +16,7 @@
  * A pair of a key and a value.
  */
 typedef struct key_value_pair {
-  void* key;
+  char* key;
   void* value;
 } Kvp;
 
@@ -26,9 +26,11 @@ typedef struct key_value_pair {
  * Stored in a binary tree
  */
 typedef struct node {
-  Kvp table[SLOTS];   // the actual content
-  Node* left;         // neighbours
-  Node* right;
+  unsigned int hash_angle;
+  Kvp* table;   // the actual content
+  int load;
+  struct node* left;         // neighbours
+  struct node* right;
 } Node;
 
 /**
@@ -44,34 +46,19 @@ typedef struct binary_tree {
  */
 typedef struct KVS {
   BT* key_nodes;          // where the stuff hashed by key will e
-  BT* value_nodes;
-  size_t key_size;
-  size_t value_size;
+  //BT* value_nodes;
+  // size_t key_size;
+  // size_t value_size;
+  int load;
 } KVS;
 /* ==================== */
 
 //KVS INTERFACE FUNCTIONS
 
 /**
- * a pair of key and value used to store values in a key-value store
- * @member <c>char* key</c> the key
- * @member <c>char* value</c> the value saved to its key
- * @member <c>struct keyValuePair *next</c> a pointer to the next element
- */
-typedef struct keyValuePair keyValuePair;
-
-/**
- * Key-Value store
- * @member <c>int size</c> the capacity of the key-value store
- * @member <c>int load</c> the used space of the key-value store
- * @member <c>struct keyValuePair</c> the table of key-value pairs in the store
- */
-typedef struct KVS KVS;
-
-/**
  * creates a new Key-Value store
  * @param <c>int size</c> desired initial size of the store in number of key-value pairs
- * @return <c>struct KVS</c> a new Key-Value store
+ * @return <c>struct KVS</c> pointer to a new Key-Value store
  */
 KVS* create(int size);
 
@@ -121,6 +108,29 @@ int replace(KVS* store, char* key, void* value);
  * @return <c>float</c> the loadfactor of the key-value store
  */
 float loadfactor (KVS *store);
+
+/// DEBUG STUFF
+void print_tables_tree(BT* tree);
+
+// recursive thing to print everythin
+void print_nodes(Node* node);
+
+///////// AUXILIARY FUNCTIONS
+static BT* create_BT();
+
+static Node* create_node(unsigned int hash_angle);
+
+static void destroy_node(Node* node);
+
+static void insert_node(BT* tree, Node* node);
+
+// non recursive
+static void remove_node(BT* tree, unsigned int hash_angle);
+
+static Node* find_node_after(BT* tree, unsigned int hash_angle);
+
+static void insert_into_node(Node* node, Kvp kvp);
+static Kvp init_kvp();
 
 void printKVS(KVS* store);
 
