@@ -8,7 +8,8 @@
 
 #define PORT 50000
 #define BUFFER_SIZE 1024
-#define MAX_CONNECTIONS 100
+#define USER_BUF 100
+#define MAX_CONNECTIONS 1000
 
 #define USE_TLS TRUE
 

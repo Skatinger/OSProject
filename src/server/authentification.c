@@ -11,11 +11,11 @@
 
 
 
-user_db_t* init_user_db() {
+user_db_t* u_init_user_db() {
   user_db_t* db;
   db = malloc(sizeof(user_db_t));
   db->count = 0;
-  db->store = create(MAXUSERS);
+  db->store = kvs_create(MAXUSERS);
   // apparently this is a good value (google)
   db->ITERATION_COUNT = 100000;
   return db;
@@ -64,7 +64,7 @@ static uint8_t* createHash(char* password, uint8_t* salt, int iter) {
   }
 }
 
-int checkCredentials(user_db_t* db, char* username, char* password) {
+int u_check_credentials(user_db_t* db, char* username, char* password) {
   user_t* user = getUserByName(db, username);
   if (user != NULL) {
     uint8_t* hash = createHash(password, user->salt, user->iter);
@@ -87,16 +87,16 @@ int checkCredentials(user_db_t* db, char* username, char* password) {
 
 static user_t* getUserByName(user_db_t* db, char* username) {
   user_t* user;
-  user = (user_t*) get(db->store, username);
+  user = (user_t*) kvs_get(db->store, username);
   return user;
 }
 
-int addUser(user_db_t* db, char* username, char* password, int rights) {
+int u_add_user(user_db_t* db, char* username, char* password, int rights) {
   db->count++;
   user_t* user;
   user = new_user(db, password, rights);
   int rep;
-  rep = set(db->store, username, (void*)user);
+  rep = kvs_set(db->store, username, (void*)user);
 
   if (rep == SUCCESS) {
     return 0;
@@ -109,8 +109,8 @@ int addUser(user_db_t* db, char* username, char* password, int rights) {
   return 0;
 }
 
-int delete_user(user_db_t* db, char* username) {
-  void* rep = del(db->store, username);
+int u_delete_user(user_db_t* db, char* username) {
+  void* rep = kvs_del(db->store, username);
   if (rep != NULL) {
     db->count--;
     return 0;
@@ -119,22 +119,22 @@ int delete_user(user_db_t* db, char* username) {
   }
 }
 
-int update_user(user_db_t* db, char* old_username, char* new_username, char* new_password) {
+int u_update_user(user_db_t* db, char* old_username, char* new_username, char* new_password) {
   int rights = getUserByName(db, old_username)->rights;
   int logged_in = getUserByName(db, old_username)->logged_in;
 
   if (logged_in) return ERROR_USER_LOGGEDIN;
 
-  void* rep = del(db->store, old_username);
+  void* rep = kvs_del(db->store, old_username);
   if (rep == NULL) {
     return ERROR_GEN;
   }
 
-  return addUser(db, new_username, new_password, rights);
+  return u_add_user(db, new_username, new_password, rights);
 }
 
 
-int get_access(user_db_t* db, char* username) {
+int u_get_access(user_db_t* db, char* username) {
   user_t* user = getUserByName(db, username);
 
   pthread_t calling_thread = pthread_self();
@@ -145,7 +145,7 @@ int get_access(user_db_t* db, char* username) {
   }
 }
 
-int get_logged_in(user_db_t* db, char* username) {
+int u_get_logged_in(user_db_t* db, char* username) {
   user_t* user = getUserByName(db, username);
 
   pthread_t calling_thread = pthread_self();
@@ -156,7 +156,7 @@ int get_logged_in(user_db_t* db, char* username) {
   }
 }
 
-int set_access_rights(user_db_t* db, char* username, int rights) {
+int u_set_access_rights(user_db_t* db, char* username, int rights) {
   user_t* user = getUserByName(db, username);
   if (user == NULL || rights < NONE || rights > ADMIN) {
     return 1;
@@ -166,7 +166,7 @@ int set_access_rights(user_db_t* db, char* username, int rights) {
   }
 }
 
-int set_access_logged_in(user_db_t* db, char* username, int logged_in) {
+int u_set_access_logged_in(user_db_t* db, char* username, int logged_in) {
   user_t* user = getUserByName(db, username);
   pthread_t* calling_thread = malloc(sizeof(pthread_t));
   *calling_thread = pthread_self();
@@ -179,7 +179,7 @@ int set_access_logged_in(user_db_t* db, char* username, int logged_in) {
   }
 }
 
-char* bytesToHexString(uint8_t* bytes, int nbBytes) {
+char* u_bytes_to_hex_string(uint8_t* bytes, int nbBytes) {
   char* hexString = malloc((2*nbBytes + 1)* sizeof(char));
   for (int i = 0; i < nbBytes; i++) {
     if (bytes[i] == '\0') break;
@@ -189,9 +189,9 @@ char* bytesToHexString(uint8_t* bytes, int nbBytes) {
   return hexString;
 }
 
-void printUser(char* username, user_t* user) {
-  char* saltString = bytesToHexString(user->salt, SALT_LENGTH);
-  char* hashString = bytesToHexString(user->passwordHash, SHA_512_DIGEST_SIZE);
+void u_print_user(char* username, user_t* user) {
+  char* saltString = u_bytes_to_hex_string(user->salt, SALT_LENGTH);
+  char* hashString = u_bytes_to_hex_string(user->passwordHash, SHA_512_DIGEST_SIZE);
   printf("----------------------------\n");
   printf("USER INFO\n");
   printf("Name: %s, \nHash: %s, \nsalt: %s, \niter: %d, \nrights: %d\n", username, hashString, saltString, user->iter, user->rights);
@@ -200,12 +200,12 @@ void printUser(char* username, user_t* user) {
   free(hashString);
 }
 
-void print_user(user_db_t* db, char* username) {
+void u_print_user_jr(user_db_t* db, char* username) {
   user_t* user = getUserByName(db, username);
-  if (user != NULL) printUser(username, user);
+  if (user != NULL) u_print_user(username, user);
   else printf("User not found");
 }
 
-void updateIterationCount(user_db_t* db, int newCount) {
-  db->ITERATION_COUNT = newCount;
+void u_update_iteration_count(user_db_t* db, int new_count) {
+  db->ITERATION_COUNT = new_count;
 }

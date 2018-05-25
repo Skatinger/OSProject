@@ -60,13 +60,13 @@ typedef struct KVS {
  * @param <c>int size</c> desired initial size of the store in number of key-value pairs
  * @return <c>struct KVS</c> pointer to a new Key-Value store
  */
-KVS* create(int size);
+KVS* kvs_create(int size);
 
 /**
  * destroys a Key-Value store
  * @param <c>store</c> the store to be destroyed
  */
-void destroy(KVS* store);
+void kvs_destroy(KVS* store);
 
 /**
  * inserts a new key-value pair into a store
@@ -75,7 +75,7 @@ void destroy(KVS* store);
  * @param <c>char* value</> value of the pair to be inserted
  * @return <c>int</c> 0 if error occured, 1 otherwise
  */
-int set(KVS* store, char* key, void* value);
+int kvs_set(KVS* store, char* key, void* value);
 
 /**
  * searches for a given key and its value
@@ -83,7 +83,7 @@ int set(KVS* store, char* key, void* value);
  * @param <c>char* key</c> the key to be searched for
  * @return <c>char*</c> the found key or an empty string
  */
-void* get(KVS* store, char* key);
+void* kvs_get(KVS* store, char* key);
 
 /**
  * deletes a key-value pair from a store
@@ -91,7 +91,7 @@ void* get(KVS* store, char* key);
  * @param <c>char* key</c> the key of the pair to be deleted
  * @return <c>char*</c> the deleted value
  */
-void* del(KVS* store, char* key);
+void* kvs_del(KVS* store, char* key);
 
 /**
  * replaces a value with another value. This does change the key as well
@@ -100,7 +100,7 @@ void* del(KVS* store, char* key);
  * @param <c>char* value</c> the value to be inserted in place of the previous
  * @return <c>int</c> 0 if error occured, 1 otherwise
  */
-int replace(KVS* store, char* key, void* value);
+int kvs_replace(KVS* store, char* key, void* value);
 
 /**
  * calculates the load of a key-value store

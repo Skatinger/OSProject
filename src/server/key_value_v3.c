@@ -4,23 +4,21 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-
-KVS* create() {
+KVS* kvs_create() {
     KVS* kvs = malloc(sizeof(KVS));
     kvs->load = 0;
     kvs->key_nodes = create_LL();
     return kvs;
 }
 
-void destroy(KVS* kvs) {
+void kvs_destroy(KVS* kvs) {
     destroy_LL(kvs->key_nodes);
     free(kvs);
     kvs = NULL;
 }
 
-int set(KVS* kvs, char* key, void* value) {
-    unsigned int angle = hash_angle(key);
+int kvs_set(KVS* kvs, char* key, void* value) {
+    unsigned int angle = kvs_hash_angle(key);
 
     // we'll need the node before the one where we want to insert in case we need to split this node
     Node* before_dest = find_node_before_after(kvs->key_nodes, angle);
@@ -54,45 +52,53 @@ int set(KVS* kvs, char* key, void* value) {
     return insert_into_node(dest, new);
 }
 
-void* get(KVS* kvs, char* key) {
-    unsigned int angle = hash_angle(key);
+void* kvs_get(KVS* kvs, char* key) {
+    // get the node on the circle
+    unsigned int angle = kvs_hash_angle(key);
     Node* node = find_node_after(kvs->key_nodes, angle);
-
+    // and return the value from there
     return get_from_node(node, key);
 }
 
-void* del(KVS* kvs, char* key) {
-    unsigned int angle = hash_angle(key);
+void* kvs_del(KVS* kvs, char* key) {
+    unsigned int angle = kvs_hash_angle(key);
     Node* node = find_node_after(kvs->key_nodes, angle);
     Node* next;
+    // go back to beginning at end of list (circle)
     if (node->next != NULL ) next = node->next;
     else next = kvs->key_nodes->first;
 
+    // check the loadfactors to see if nodes can be reduced
     double factor = loadfactor(node);
     double factor_next = loadfactor(next);
     if (factor + factor_next < 0.7) {
-       merge_with_successor(kvs->key_nodes, node);
-        return remove_from_node(next, key);
+      // if so do so
+      merge_with_successor(kvs->key_nodes, node);
+      return remove_from_node(next, key);
     }
 
     kvs->load--;
     return remove_from_node(node, key);
 }
 
-int replace(KVS* kvs, char* key, void* value) {
-    unsigned int angle = hash_angle(key);
+int kvs_replace(KVS* kvs, char* key, void* value) {
+    unsigned int angle = kvs_hash_angle(key);
     Node *node = find_node_after(kvs->key_nodes, angle);
 
     return replace_in_node(node, key, value);
 }
 
-float avg_loadfactor(KVS* kvs) {
+float kvs_avg_loadfactor(KVS* kvs) {
+    // the number of slots per table times the max number of tables is the
+    // (theoretical) max for this kvs
     return (float) kvs->load / (float) (SLOTS*MAX_ADDRESS);
 }
 
-char* keys_for_string_value(KVS* kvs, char* value) {
+char* kvs_keys_for_string_value(KVS* kvs, char* value) {
     char* keys = "";
     char* k_for_v;
+    // Go through all nodes and collect keys where necessary,
+    // then concat them
     for (Node *i = kvs->key_nodes->first; i != NULL; i = i->next) {
         k_for_v = keys_for_string_value_in_node(i, value);
         if (!strcmp(k_for_v, "")) {
@@ -102,13 +108,13 @@ char* keys_for_string_value(KVS* kvs, char* value) {
             // if this is the first, dont add a ; before
             keys = k_for_v;
         } else {
-            keys = concat(3, keys, "- ", k_for_v);
+            keys = ss_concat(3, keys, " - ", k_for_v);
         }
     }
     return keys;
 }
 
-unsigned int hash_angle(char* key) {
+unsigned int kvs_hash_angle(char* key) {
     // TODO: Find good hash function THAT UNIFORMLY DISTRIBUTES STUFF ON CIRCLE
     unsigned int h;
     char* tmp = key;
@@ -119,7 +125,7 @@ unsigned int hash_angle(char* key) {
 }
 
 void print_kvs(KVS* kvs) {
-    print_tables_list(kvs->key_nodes, TRUE);
+    kvs_print_tables_list(kvs->key_nodes, TRUE);
 }
 
 static LL* create_LL() {
@@ -134,15 +140,20 @@ static LL* create_LL() {
 static int split_up_node(LL* list, Node *node, Node* prev) {
     // the new node should be inserted between this one and the one before
     // so the new one can 'consume' half of this one's kvps
+    // since one works under the assumption that angles are distributed uniformly
     int new_angle = 0;
+
+    // depending on whether the  prev is on the 'lefthand' or the 'righthand'
+    // side of the circle, the distance has to be calculated differently
     if (prev->hash_angle < node->hash_angle) {
         new_angle = prev->hash_angle + ((node->hash_angle - prev->hash_angle) / 2);
     } else if (prev->hash_angle > node->hash_angle) {
         new_angle = prev->hash_angle + ((MAX_ADDRESS - prev->hash_angle + node->hash_angle) / 2);
-
     } else if (list->nb_nodes == 1) {
+        // special case for the first split
         new_angle = (node->hash_angle + MAX_ADDRESS / 2) % MAX_ADDRESS;
     }
+    // make sure everything stays in the valid address space
     new_angle = new_angle % MAX_ADDRESS;
 
     Node *new = create_node(new_angle);
@@ -158,7 +169,7 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
         // now see which elements need to be transferred to the new one
         for (int i = 0; i < SLOTS; i++) {
             if (node->table[i] == NULL) continue;
-            kvs_angle = hash_angle(node->table[i]->key);
+            kvs_angle = kvs_hash_angle(node->table[i]->key);
             if (kvs_angle <= new_angle) {
                 insert_into_node(new, node->table[i]);
                 node->table[i] = NULL;
@@ -170,7 +181,7 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
         // so the elements that have an angle <= new_angle need to be transferred
         for (int i = 0; i < SLOTS; i++) {
             if (node->table[i] == NULL) continue;
-            kvs_angle = hash_angle(node->table[i]->key);
+            kvs_angle = kvs_hash_angle(node->table[i]->key);
             if (kvs_angle > node->hash_angle) {
                 insert_into_node(new, node->table[i]);
                 node->table[i] = NULL;
@@ -183,13 +194,16 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
 }
 
 static void merge_with_successor(LL* list, Node* node) {
+    // never remove the last node
     if (node->hash_angle == MAX_ADDRESS) return;
+    // go back to beginning if necessary
     Node* next = node->next == NULL ? list->first : node->next;
     for (int i = 0; i < SLOTS; i++) {
         if (node->table[i] == NULL) continue;
+        // move to next node
         insert_into_node(next, node->table[i]);
-
     }
+    // remove the now not needed one
     remove_node(list, node->hash_angle);
 }
 
@@ -220,8 +234,10 @@ static void destroy_node_leave_kvps(Node* node) {
 }
 
 static void insert_node(LL* list, Node *node) {
-    Node *current = list->first;
-    Node *previous = NULL;
+    // Go trough the list and insert at appropriate spot so the list
+    // stays sorted with respect to the angles
+    Node* current = list->first;
+    Node* previous = NULL;
     while (current != NULL && current->hash_angle < node->hash_angle) {
         previous = current;
         current = current->next;
@@ -247,8 +263,10 @@ static void insert_node(LL* list, Node *node) {
 
 // non recursive
 static void remove_node(LL* list, unsigned int hash_angle) {
+    // make sure there is at least one left, and always the last one
     if (list->nb_nodes < 2 || hash_angle == MAX_ADDRESS) return;
 
+    // find previous so as to relink
     Node* previous = find_node_before_after(list, hash_angle);
     Node* to_delete = previous->next == NULL ? list->first : previous->next;
     if (to_delete->hash_angle != hash_angle) /*nothing to delete then*/ return;
@@ -258,20 +276,17 @@ static void remove_node(LL* list, unsigned int hash_angle) {
     if (list->last == to_delete) list->last = previous;
     if (list->first == to_delete) list->first = to_delete->next;
 
-
+    // leave the kvp since they may still be used in other places
     destroy_node_leave_kvps(to_delete);
     list->nb_nodes--;
 }
 
 static Node* find_node_before_after(LL* list, unsigned int hash_angle) {
     Node *current = list->first;
-    //Node* previous = NULL;
+    // Go trough list until either at the end or the angle becomes too big
     while (current->next != NULL && current->next->hash_angle < hash_angle) {
-        //previous = current;
         current = current->next;
     }
-    //if (current != NULL) printf("current %d\n", current->hash_angle);
-    //if (previous != NULL) printf("previous %d", previous->hash_angle);
 
     if (current == NULL) {
         // we went all the way to the end of the list, so take the beginning
@@ -284,8 +299,9 @@ static Node* find_node_before_after(LL* list, unsigned int hash_angle) {
 }
 
 static Node* find_node_after(LL* list, unsigned int hash_angle) {
+    // That's now just the one after the one before the after one :D
     Node *node = find_node_before_after(list, hash_angle);
-    if (node == NULL || node->next == NULL) return list->first;
+    if (node->next == NULL) return list->first;
     return node->next;
 }
 
@@ -410,9 +426,8 @@ static char* keys_for_string_value_in_node(Node* node, char* value) {
             if (!strcmp(keys, "")) {
                 keys = node->table[i]->key;
             } else {
-                keys = concat(3, keys, "- ", node->table[i]->key);
+                keys = ss_concat(3, keys, " - ", node->table[i]->key);
             }
-
         }
     }
     return keys;
@@ -427,9 +442,7 @@ static Kvp* init_kvp() {
 
 static void free_kvp(Kvp* kvp) {
     if (kvp == NULL) return;
-    //free(kvp->key);
     kvp->key = NULL;
-    //free(kvp->value);
     kvp->value = NULL;
     free(kvp);
     kvp = NULL;
@@ -438,6 +451,7 @@ static void free_kvp(Kvp* kvp) {
 static void destroy_LL(LL* list) {
     Node* current = list->first;
     Node* prev = NULL;
+    // iteratively destroy everything
     while (current != NULL) {
         prev = current;
         current = current->next;
@@ -447,7 +461,7 @@ static void destroy_LL(LL* list) {
     list = NULL;
 }
 
-void print_tables_list(LL* list, int print_kvps) {
+void kvs_print_tables_list(LL* list, int print_kvps) {
     printf("Printing list. nb_nodes: %d, angle of first %d, angle of last %d\n", list->nb_nodes, list->first->hash_angle,
            list->last->hash_angle);
     Node* current = list->first;
@@ -456,18 +470,18 @@ void print_tables_list(LL* list, int print_kvps) {
         printf("\t-Angle: %u\n", current->hash_angle);
         if (print_kvps) {
             printf("\t-Table:\n");
-            print_string_kvp_table(current->table);
+            kvs_print_string_kvp_table(current->table);
         }
         printf("\t-Load: %d\n\n", current->load);
         current = current->next;
     }
 }
 
-void print_string_kvp_table(Kvp** table) {
+void kvs_print_string_kvp_table(Kvp** table) {
     for (int i = 0; i < SLOTS; i++) {
         if (table[i] == NULL || table[i]->key == NULL) continue;
         printf("\t\t%2d: key: %s\tvalue: %s\tangle: %u\n", i, table[i]->key, (char *) table[i]->value,
-               hash_angle(table[i]->key));
+               kvs_hash_angle(table[i]->key));
     }
 }
 

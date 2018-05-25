@@ -66,13 +66,13 @@ typedef struct KVS {
  * creates a new Key-Value store
  * @return <c>struct KVS</c> pointer to a new Key-Value store
  */
-KVS* create();
+KVS*  kvs_create();
 
 /**
  * destroys a Key-Value store
  * @param <c>store</c> the store to be destroyed
  */
-void destroy(KVS* store);
+void kvs_destroy(KVS* store);
 
 /**
  * inserts a new key-value pair into a store
@@ -81,7 +81,7 @@ void destroy(KVS* store);
  * @param <c>void* value</> value of the pair to be inserted
  * @return <c>int</c> SUCCESS if everything's fine, one of the error codes if not
  */
-int set(KVS* store, char* key, void* value);
+int kvs_set(KVS* store, char* key, void* value);
 
 /**
  * searches for a given key and its value
@@ -89,7 +89,7 @@ int set(KVS* store, char* key, void* value);
  * @param <c>char* key</c> the key to be searched for
  * @return <c>void*</c> the found key or NULL
  */
-void* get(KVS* store, char* key);
+void* kvs_get(KVS* store, char* key);
 
 /**
  * deletes a key-value pair from a store.
@@ -98,7 +98,7 @@ void* get(KVS* store, char* key);
  * @param <c>char* key</c> the key of the pair to be deleted
  * @return <c>void*</c> the deleted value
  */
-void* del(KVS* store, char* key);
+void* kvs_del(KVS* store, char* key);
 
 /**
  * replaces a value with another value. This does not change the key.
@@ -107,14 +107,14 @@ void* del(KVS* store, char* key);
  * @param <c>void* value</c> the value to be inserted in place of the previous
  * @return <c>int</c> SUCCESS on success, one of the error codes if not.
  */
-int replace(KVS* store, char* key, void* value);
+int kvs_replace(KVS* store, char* key, void* value);
 
 /**
  * calculates the loadfactor of the whole key-value store, which in praxis will never be more than 90%.
  * @param <c>struct KVS* store</c> the store of which the loadfactor should be calculated
  * @return <c>float</c> the loadfactor of the key-value store
  */
-float avg_loadfactor (KVS *store);
+float kvs_avg_loadfactor(KVS *store);
 
 /**
  * Incredibly inefficient way to retrieve the keys to a certain value, if the value is a string (char*).
@@ -123,7 +123,7 @@ float avg_loadfactor (KVS *store);
  * @param value the value one wants the keys to
  * @return the keys that have the given value
  */
-char *keys_for_string_value(KVS *kvs, char* value);
+char* kvs_keys_for_string_value(KVS* kvs, char* value);
 
 ///* =================================================================================================== */
 ///  DEBUG FUNCTIONS
@@ -134,13 +134,13 @@ char *keys_for_string_value(KVS *kvs, char* value);
  * @param list the list to print
  * @param print_kvps whether or not to print the keyvaluepairs in a node
  */
-void print_tables_list(LL* list, int print_kvps);
+void kvs_print_tables_list(LL* list, int print_kvps);
 
 /**
  * Print the content of a kvp table to stdout.
  * @param table the table to print
  */
-void print_string_kvp_table(Kvp** table);
+void kvs_print_string_kvp_table(Kvp** table);
 
 /**
  * Prints the whole keyvaluestore and info about it.
@@ -158,7 +158,7 @@ void print_kvs(KVS* kvs);
  * @param key the key to hash
  * @return the angle on the circle.
  */
-unsigned int hash_angle(char* key);
+unsigned int kvs_hash_angle(char* key);
 
 /**
  * Creates a new LinkedList of Nodes.

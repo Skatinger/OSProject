@@ -10,13 +10,8 @@
 #include "client.h"
 #include "client_requests.h"
 #include "../utils/logger.h"
-
-
-
-#if USE_TLS == TRUE
-  #include <openssl/ssl.h>
-  #include <openssl/err.h>
-#endif
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 /*
  * Since all of these are only used here, it seems to make sense to declare
@@ -61,6 +56,8 @@ static int c_create_socket() {
 static void c_init_TLS() {
   SSL_CTX* ctx;
   int err;
+
+  // lib-related init stuff
   SSL_library_init();
   SSL_load_error_strings();
 
@@ -78,12 +75,14 @@ int c_connect_TLS(char* ip_address) {
   c_init_TLS();
   server_address = c_parse_address(PORT, ip_address);
 
+  // try to connect using TCP
   if(connect(socket_descriptor, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
      perror("Socket connecting failed");
      exit(EXIT_FAILURE);
      return 1;
   }
 
+  // and join it to the TLS interface
   if (SSL_set_fd(tls, socket_descriptor) <= 0) {
     c_TLS_error("Joining TLS with Socket failed", TRUE);
     return 1;
@@ -125,7 +124,6 @@ int c_receive_TLS(char buffer[BUFFER_SIZE]) {
   }
 }
 
-// for testing only
 void c_end_TLS() {
   c_send_TLS(BYE);
   close(socket_descriptor);
@@ -133,8 +131,8 @@ void c_end_TLS() {
   free(tls);
 }
 
-
 static SSL_CTX* c_create_context() {
+  // set up the necessary context, i.e. settings for the TLS session
   SSL_CTX* ctx = NULL;
   int err; char buf[ERR_BUF_SIZE];
 
@@ -151,17 +149,10 @@ static SSL_CTX* c_create_context() {
   }
 
   /*
-  For the moment, certificate verification is off as this can be rather annoying
-  to debug and stuff.
-  Also, it isn't rally necessary.
+  Certificate verification is off, getting certificates is annoying and
+  not really necessary for this project.
    */
   SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
-
-  //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, NULL);
-
-  //SSL_CTX_set_verify_depth(ctx, 4);
-  // res = SSL_CTX_load_verify_locations(ctx, "crypto/Fake_CA/ca.crt", NULL);
-  // if(!(1 == res)) c_TLS_error("verify locations");
 
   // set sesible options for this connection
   const long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
@@ -177,7 +168,7 @@ static void c_TLS_error(char* error_msg, int exit_program) {
   // get all SSL error messages
   while ((err = ERR_get_error()) != 0) {
     ERR_error_string_n(err, buf, sizeof(buf));
-    logger(concat(2, "***", buf), LOGERROR);
+    logger(ss_concat(2, "***", buf), LOGERROR);
   }
 
   perror(error_msg);

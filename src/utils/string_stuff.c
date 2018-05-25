@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include "string_stuff.h"
 
-char* concat(int num, ...) {
+char* ss_concat(int num, ...) {
   va_list vlist;
   va_start(vlist, num);
   char* dest = malloc(1024*sizeof(char));
@@ -20,27 +20,27 @@ char* concat(int num, ...) {
   return dest;
 }
 
-char* intToString(int num) {
+char* ss_int_to_3digit_string(int num) {
   char* ret = malloc(4*sizeof(char));
   sprintf(ret, "%d", num);
   ret[3] = 0;
   return ret;
 }
 
-char* itoa(int num, int length) {
+char* ss_itoa(int num, int length) {
   char* ret = malloc((length+1)*sizeof(char));
   sprintf(ret, "%d", num);
   ret[length] = 0;
   return ret;
-  
+
 }
 
-char* concatCode(int code, int nbWords, ...) {
+char* ss_concat_code(int code, int nbWords, ...) {
   va_list vlist;
   va_start(vlist, nbWords);
   char* dest = malloc(1024* sizeof(char));
   dest[0] = 0;
-  strcpy(dest, intToString(code));
+  strcpy(dest, ss_int_to_3digit_string(code));
   for (int i = 0; i < nbWords; i++) {
     char* source = va_arg(vlist, char*);
     strcat(dest,source);
@@ -49,7 +49,7 @@ char* concatCode(int code, int nbWords, ...) {
   return dest;
 }
 
-char* getFirstParam(char* msg) {
+char* ss_get_first_param(char* msg) {
   char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k, j;
   i = 0; n = strlen(msg); j = 0;
@@ -70,7 +70,7 @@ char* getFirstParam(char* msg) {
   return param;
 }
 
-char* getSecondParam(char* msg) {
+char* ss_get_second_param(char* msg) {
   char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k;
   i = 0; n = strlen(msg);
@@ -84,7 +84,7 @@ char* getSecondParam(char* msg) {
   return param;
 }
 
-char* getThirdParam(char* msg) {
+char* ss_get_third_param(char* msg) {
   char* param = malloc(BUFFER_SIZE * sizeof(char));
   int i, n, k;
   i = 0; n = strlen(msg);
@@ -98,7 +98,7 @@ char* getThirdParam(char* msg) {
   return param;
 }
 
-void get_password(char* prompt, char password[]) {
+void ss_get_password(char* prompt, char password[]) {
     static struct termios oldt, newt;
     int i = 0;
     int c;

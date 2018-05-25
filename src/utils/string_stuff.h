@@ -18,15 +18,15 @@
 
 
 
-char* concat(int num, ...);
-char* intToString(int num);
-char* itoa(int num, int length);
-char* concatCode(int code, int nbWords, ...);
+char* ss_concat(int num, ...);
+char* ss_int_to_3digit_string(int num);
+char* ss_itoa(int num, int length);
+char* ss_concat_code(int code, int nbWords, ...);
 
-char* getFirstParam(char* msg);
-char* getSecondParam(char* msg);
-char* getThirdParam(char* msg);
+char* ss_get_first_param(char* msg);
+char* ss_get_second_param(char* msg);
+char* ss_get_third_param(char* msg);
 
-void get_password(char* prompt, char password[]);
+void ss_get_password(char* prompt, char password[]);
 
 #endif

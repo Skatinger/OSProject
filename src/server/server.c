@@ -11,14 +11,8 @@
 #include "server.h"
 #include "../project.h"
 #include "../utils/logger.h"
-
-
-#if USE_TLS == TRUE
-  #include <openssl/ssl.h>
-  #include <openssl/err.h>
-#endif
-
-
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 // the address of this server (based on its real address)
 static struct sockaddr_in server_address;

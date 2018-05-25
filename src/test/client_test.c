@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   char pw[100];
   scanf("%s", username);
   char c = getchar(); // newline char
-  get_password("Enter the password please\n", pw);
+  ss_get_password("Enter the password please\n", pw);
 
   char* message = LOGIN(username, pw);
 

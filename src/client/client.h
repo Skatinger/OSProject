@@ -45,7 +45,6 @@ void c_end_TLS();
 /**
  * Returns the descriptor for a new client socket (Basically an ID for this
  * socket).
- * @param  port the port to open
  * @return   socket descriptor
  */
 static int c_create_socket();

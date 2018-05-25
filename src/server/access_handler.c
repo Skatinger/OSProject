@@ -19,10 +19,10 @@ static int reader_count;
 static int STORE_SIZE = 1000;
 pthread_key_t* USERNAME;
 
-void init_access_handler(pthread_key_t* USERNAME_key, char* root_pw) {
-  users = init_user_db();
-  addUser(users, "root", root_pw, ADMIN);
-  kvs = create(STORE_SIZE);
+void ah_init_access_handler(pthread_key_t* USERNAME_key, char* root_pw) {
+  users = u_init_user_db();
+  u_add_user(users, "root", root_pw, ADMIN);
+  kvs = kvs_create(STORE_SIZE);
   pthread_mutex_init(&kvs_lock, NULL);
   pthread_mutex_init(&users_lock, NULL);
   pthread_mutex_init(&counter_lock, NULL);
@@ -35,7 +35,7 @@ void init_access_handler(pthread_key_t* USERNAME_key, char* root_pw) {
   reader_count = 0;
 }
 
-char* login(char* password) {
+char* ah_login(char* password) {
   // Getting the username from the thread-global USERNAME value
   void* res;
   res = pthread_getspecific(*USERNAME);
@@ -43,18 +43,18 @@ char* login(char* password) {
 
   logger("Acquiring user lock", INFO);
   pthread_mutex_lock(&users_lock);
-  if (get_logged_in(users, username)) {
-    logger(concat(2, username, "already logged in"), INFO);
+  if (u_get_logged_in(users, username)) {
+    logger(ss_concat(2, username, "already logged in"), INFO);
     pthread_mutex_unlock(&users_lock);
     logger("User lock unlocked", INFO);
     return ERROR_ALREADY_LOGGEDIN(username);
   }
-  if (checkCredentials(users, username, password)) {
-    logger(concat(2, "Setting logged_in to TRUE for ", username), INFO);
+  if (u_check_credentials(users, username, password)) {
+    logger(ss_concat(2, "Setting logged_in to TRUE for ", username), INFO);
     pthread_t* this_thread = malloc(sizeof(pthread_t));
     // *this_thread = pthread_self();
-    // logger(concat(2, "Current thread is ", intToString(*this_thread), INFO);
-    set_access_logged_in(users, username, TRUE);
+    // logger(ss_concat(2, "Current thread is ", ss_int_to_3digit_string(*this_thread), INFO);
+    u_set_access_logged_in(users, username, TRUE);
     pthread_mutex_unlock(&users_lock);
     logger("User lock unlocked", INFO);
     return SUCCESS_LOGIN(username);
@@ -65,25 +65,25 @@ char* login(char* password) {
   }
 }
 
-char* logout() {
+char* ah_logout() {
   char* username;
   username = (char*) pthread_getspecific(*USERNAME);
   pthread_mutex_lock(&users_lock);
 
   // If the caller doesn't actually have access,
   // they should not be allowed to log out, hence return
-  if (get_access(users, username) < NORMAL) {
+  if (u_get_access(users, username) < NORMAL) {
     pthread_mutex_unlock(&users_lock);
     // TODO: perhaps give error message here.
     return SUCCESS_LOGOUT;
   }
-  set_access_logged_in(users, username, FALSE);
+  u_set_access_logged_in(users, username, FALSE);
   pthread_mutex_unlock(&users_lock);
 
   return SUCCESS_LOGOUT;
 }
 
-char* reader(char* input, int TYPE) {
+char* ah_reader(char* input, int TYPE) {
   char* username;
   int rights;
   char* value;
@@ -92,7 +92,7 @@ char* reader(char* input, int TYPE) {
 
   // if the user is not logged in, he may not read
   pthread_mutex_lock(&users_lock);
-  if ((rights = get_access(users, username)) < 0) {
+  if ((rights = u_get_access(users, username)) < 0) {
     pthread_mutex_unlock(&users_lock);
     return ERROR_ACCESS_DENIED(username);
   }
@@ -114,11 +114,11 @@ char* reader(char* input, int TYPE) {
   // ACTUAL KVS ACCESS
   switch(TYPE) {
     case GET:
-      value = (char*) get(kvs, input);
+      value = (char*) kvs_get(kvs, input);
       reply = value != NULL ? SUCCESS_GOT(input, value) : ERROR_KEY_NOT_FOUND(input);
       break;
     case KEY:
-      value =  keys_for_string_value(kvs, input);
+      value =  kvs_keys_for_string_value(kvs, input);
       reply = value != NULL ? SUCCESS_KEY(value) : ERROR_VALUE_INVALID;
       break;
   }
@@ -139,13 +139,13 @@ char* reader(char* input, int TYPE) {
   return reply;
 }
 
-char* user_db_new(char *username, char* password){
+char* ah_user_db_new(char *username, char* password){
   char* current_user;
   current_user = (char*) pthread_getspecific(*USERNAME);
 
-  if (get_access(users, current_user) >= ADMIN) {
+  if (u_get_access(users, current_user) >= ADMIN) {
     pthread_mutex_lock(&users_lock);
-    int r = addUser(users, username, password, NORMAL);
+    int r = u_add_user(users, username, password, NORMAL);
     logger("added new user\n", INFO);
     pthread_mutex_unlock(&users_lock);
     if (r == SUCCESS) {
@@ -163,13 +163,13 @@ char* user_db_new(char *username, char* password){
   }
 }
 
-char* user_db_delete(char* username) {
+char* ah_user_db_delete(char* username) {
   char* current_user;
   current_user = (char*) pthread_getspecific(*USERNAME);
 
-  if (get_access(users, current_user) >= ADMIN) {
+  if (u_get_access(users, current_user) >= ADMIN) {
     pthread_mutex_lock(&users_lock);
-    int r = delete_user(users, username);
+    int r = u_delete_user(users, username);
     logger("deleted user\n", INFO);
     pthread_mutex_unlock(&users_lock);
     return r == 0 ? SUCCESS_DEL_U(username) : ERROR_USER_MODIFICATION;
@@ -178,13 +178,13 @@ char* user_db_delete(char* username) {
   }
 }
 
-char* user_db_update(char* old_username, char* new_username, char* new_password) {
+char* ah_user_db_update(char* old_username, char* new_username, char* new_password) {
   char* current_user;
   current_user = (char*) pthread_getspecific(*USERNAME);
 
-  if (get_access(users, current_user) >= ADMIN) {
+  if (u_get_access(users, current_user) >= ADMIN) {
     pthread_mutex_lock(&users_lock);
-    int r = update_user(users, old_username, new_username, new_password);
+    int r = u_update_user(users, old_username, new_username, new_password);
     logger("deleted user\n", INFO);
     pthread_mutex_unlock(&users_lock);
     if (r == SUCCESS) {
@@ -203,13 +203,13 @@ char* user_db_update(char* old_username, char* new_username, char* new_password)
   }
 }
 
-char* user_db_admin(char* username) {
+char* ah_user_db_admin(char* username) {
   char* current_user;
   current_user = (char*) pthread_getspecific(*USERNAME);
 
-  if (get_access(users, current_user) >= ADMIN) {
+  if (u_get_access(users, current_user) >= ADMIN) {
     pthread_mutex_lock(&users_lock);
-    int r = set_access_rights(users, username, ADMIN);
+    int r = u_set_access_rights(users, username, ADMIN);
     logger("deleted user\n", INFO);
     pthread_mutex_unlock(&users_lock);
     return r == SUCCESS ? SUCCESS_MK_ADM(username) : ERROR_USER_MODIFICATION;
@@ -218,7 +218,7 @@ char* user_db_admin(char* username) {
   }
 }
 
-char* writer(char* key, char* value, int type) {
+char* ah_writer(char* key, char* value, int type) {
   // TODO: error stuff
   char* ret;
   char* whatever = malloc(BUFFER_SIZE * sizeof(char));
@@ -228,7 +228,7 @@ char* writer(char* key, char* value, int type) {
 
   // Check if user actually has access
   pthread_mutex_lock(&users_lock);
-  if ((rights = get_access(users, username)) < 0) {
+  if ((rights = u_get_access(users, username)) < 0) {
     pthread_mutex_unlock(&users_lock);
     return ERROR_ACCESS_DENIED(username);
   }
@@ -244,7 +244,7 @@ char* writer(char* key, char* value, int type) {
   //komment
   switch (type) {
     case PUT:
-      n = set(kvs, key, (void*) value);
+      n = kvs_set(kvs, key, (void*) value);
       if (n == KEY_TAKEN) {
         ret = ERROR_KEY_OCCUPIED(key);
       } else if (n == OVERFLOW) {
@@ -256,11 +256,11 @@ char* writer(char* key, char* value, int type) {
       }
       break;
     case UPD:
-      n = replace(kvs, key, (void*) value);
+      n = kvs_replace(kvs, key, (void*) value);
       ret = (n==SUCCESS) ? SUCCESS_UPD(key, value) : ERROR_KEY_NOT_FOUND(key);
       break;
     case DEL:
-      whatever = (char*) del(kvs, key);
+      whatever = (char*) kvs_del(kvs, key);
       if (whatever == NULL) {
         ret = ERROR_KEY_NOT_FOUND(key);
       } else {
@@ -278,6 +278,6 @@ char* writer(char* key, char* value, int type) {
 }
 
 
-void end_access_handler() {
+void ah_end_access_handler() {
   print_kvs(kvs);
 }

@@ -44,7 +44,7 @@
 	#gcc -o $@ $^
 
 
-all: dir build/client_test  build/kvs_test build/auth_test build/connectionH src/project.h build/ui build/kvs2
+all: dir build/client_test build/auth_test build/connectionH src/project.h build/ui build/kvs2
 
 dir:
 	mkdir -p -v build/obj
@@ -62,9 +62,6 @@ build/connectionH: src/server/connection_handler.c src/server/server.c src/serve
 
 #build/kvs: build/obj/kvs.o src/server/key_value.h
 #	gcc -o build/kvs build/obj/kvs.o
-
-build/kvs_test: build/obj/kvs_test.o src/server/key_value.h build/obj/kvs.o src/utils/logger.c
-	gcc -o build/kvs_test src/utils/string_stuff.c src/utils/logger.c build/obj/kvs.o build/obj/kvs_test.o
 
 build/auth_test: src/server/authentification.c src/test/auth_test.c src/server/authentification.h src/utils/logger.c src/server/kvs.c
 	gcc -o build/auth_test src/utils/string_stuff.c src/utils/logger.c src/test/auth_test.c src/server/authentification.c src/server/kvs.c -lssl -lcrypto

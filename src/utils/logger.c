@@ -11,7 +11,7 @@ int FILE_ONLY;
 
 void init_logger(char* name, int file_only) {
   mkdir("log", 0777);
-  char* filename = concat(5, "log/", name, "_", time_string(), ".log");
+  char* filename = ss_concat(5, "log/", name, "_", time_string(), ".log");
   log_f = fopen(filename, "w");
   FILE_ONLY = file_only;
 }

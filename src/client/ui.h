@@ -3,11 +3,12 @@
 
 #define ASCII_ART "Art by Tua Xiong\n                 \\ __\n--==/////////////[})))==*\n                 / \\ '          ,|\n                    `\\`\\      //|                             ,|\n                      \\ `\\  //,/'                           -~ |\n   )             _-~~~\\  |/ / |'|                       _-~  / ,\n  ((            /' )   | \\ / /'/                    _-~   _/_-~|\n (((            ;  /`  ' )/ /''                 _ -~     _-~ ,/'\n ) ))           `~~\\   `\\/'/|'           __--~~__--\\ _-~  _/, \n((( ))            / ~~    \\ /~      __--~~  --~~  __/~  _-~ /\n ((\\~\\           |    )   | '      /        __--~~  \\-~~ _-~\n    `\\(\\    __--(   _/    |'\\     /     --~~   __--~' _-~ ~|\n     (  ((~~   __-~        \\~\\   /     ___---~~  ~~\\~~__--~ \n      ~~\\~~~~~~   `\\-~      \\~\\ /           __--~~~'~~/\n                   ;\\ __.-~  ~-/      ~~~~~__\\__---~~ _..--._\n                   ;;;;;;;;'  /      ---~~~/_.-----.-~  _.._ ~\\     \n                  ;;;;;;;'   /      ----~~/         `\\,~    `\\ \\        \n                  ;;;;'     (      ---~~/         `:::|       `\\.      \n                  |'  _      `----~~~~'      /      `:|        ()))),      \n            ______/\\/~    |                 /        /         (((((())  \n          /~;;.____/;;'  /          ___.---(   `;;;/             )))'`))\n         / //  _;______;'------~~~~~    |;;/\\    /                ((   ( \n        //  \\ \\                        /  |  \\;;,\\                 `   \n       (<_    \\ \\                    /',/-----'  _> \n        \\_|     \\_                 //~;~~~~~~~~~ \n                 \\_|               (,~~   -Tua Xiong\n                                    \\~\n                                     ~~"
 
+#include "../project.h"
 /**
  * Hadles a login request by the user.
  * (I.e. sends the server a corresponding )
  */
-static void login(void);
+static void ah_login(void);
 
 /**
  * This handles a get request by the user.
@@ -39,18 +40,23 @@ static void delete();
  * Sends a lot of kvps to the server.
  */
 static void spam();
+
+/**
+ * Read the stuff written to the server with spam().
+ */
+static void get_spam();
 /**
  * This handles an add user request by the user.
  */
-static void add_user();
+static void u_add_user();
 
 /**
  * This allows the user to get the keys for a certain values, it they so dare.
  */
 static void preimage();
 
-static void delete_user();
-static void update_user();
+static void u_delete_user();
+static void u_update_user();
 static void make_admin();
 
 /**
@@ -62,7 +68,7 @@ static void update();
  * This handles a logout request by the user. i.e. this user is logged out
  * and a login propmpt is openend.
  */
-static void logout();
+static void ah_logout();
 
 /**
  * This reads the message the server has sent and reads the code of it,

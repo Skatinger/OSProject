@@ -16,6 +16,7 @@ It is vital that the exact commands be used, otherwise the connection will fail.
 * PUT: put a new key-value to the server
 * DEL: delete a key-value from the server
 * UPD: replace a value of a key on the server
+* KEY: get the keys mapping to a certain value
 
 ### Login-related
 * LOGIN: login a user and get access to the server
@@ -96,3 +97,6 @@ Used to give a user admin rights. May only be called by an existing admin, the s
 ## BYE
 Used to end the connection. Should be called when a either server or client exits.
 *Usage*: `BYE;`
+
+# More Details
+For more details, please refer to the message definitions in `src/server/server_responses.h` and `src/client/client_requests.h`.

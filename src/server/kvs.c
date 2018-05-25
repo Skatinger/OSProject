@@ -46,8 +46,8 @@ int reHash (KVS *t, int index) {
 /* ====================== */
 
 /* == KVS-access-methods == */
-int set(KVS *t, char* key, void* value) {
-  if (get(t, key) != NULL) {return KEY_IN_USE_ERROR;}
+int kvs_set(KVS *t, char* key, void* value) {
+  if (kvs_get(t, key) != NULL) {return KEY_IN_USE_ERROR;}
     if(t->load == t->size) return STORAGE_FULL_ERROR;//table is full
     int index = hashFunc(t, key);
     //TODO: FIX (gets caught in loop)
@@ -64,7 +64,7 @@ int set(KVS *t, char* key, void* value) {
     return SUCCESS;
 }
 
-void* get(KVS *t, char *key) {
+void* kvs_get(KVS *t, char *key) {
     int index = hashFunc(t, key);
 
     // store first index to detect cycles
@@ -82,7 +82,7 @@ void* get(KVS *t, char *key) {
 }
 
 //TODO throws segFault
-void* del(KVS *t, char *key) {
+void* kvs_del(KVS *t, char *key) {
     if (t->load == 0) return NULL;
     int index = hashFunc(t, key);
     int tmp = index;
@@ -100,7 +100,7 @@ void* del(KVS *t, char *key) {
     return res;
 }
 
-int replace(KVS* t, char* key, void* value){
+int kvs_replace(KVS* t, char* key, void* value){
     //TODO
     int index = hashFunc(t, key);
     int tmp = index;
@@ -132,7 +132,7 @@ keyValuePair initKVP() {
 }
 
 /* ==== KVS-Management === */
-KVS* create(int size) {
+KVS* kvs_create(int size) {
     KVS *newStore = malloc (sizeof (KVS));
     newStore->size = size;
     newStore->load = 0;
@@ -143,7 +143,7 @@ KVS* create(int size) {
     return newStore;
 }
 //TODO: this is horseradish
-void destroy(KVS* store){
+void kvs_destroy(KVS* store){
     //free KeyValuePairs
     int i;
     keyValuePair *kvp1, *kvp2;
