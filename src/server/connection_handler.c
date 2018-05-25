@@ -150,7 +150,7 @@ static char* parse_message(char* msg) {
 
   // and switching over it
   if (!strcmp(cmd, "GET")) {
-    return reader(getFirstParam(msg));
+    return reader(getFirstParam(msg), GET);
   } else if (!strcmp(cmd, "PUT")) {
     return writer(getFirstParam(msg), getSecondParam(msg), PUT);
   } else if (!strcmp(cmd, "DEL")) {
@@ -167,6 +167,8 @@ static char* parse_message(char* msg) {
     return user_db_admin(getFirstParam(msg));
   } else if (!strcmp(cmd, "BYE")) {
     return BYE;
+  } else if (!strcmp(cmd, "KEY")) {
+    return reader(getFirstParam(msg), KEY);
   } else if (!strcmp(cmd, "LOGIN")) {
     char* username = getFirstParam(msg);
     char* password = getSecondParam(msg);

@@ -20,6 +20,7 @@
 
 char* concat(int num, ...);
 char* intToString(int num);
+char* itoa(int num, int length);
 char* concatCode(int code, int nbWords, ...);
 
 char* getFirstParam(char* msg);

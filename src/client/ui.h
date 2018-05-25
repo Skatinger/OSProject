@@ -36,9 +36,18 @@ static void put();
 static void delete();
 
 /**
+ * Sends a lot of kvps to the server.
+ */
+static void spam();
+/**
  * This handles an add user request by the user.
  */
 static void add_user();
+
+/**
+ * This allows the user to get the keys for a certain values, it they so dare.
+ */
+static void preimage();
 
 static void delete_user();
 static void update_user();

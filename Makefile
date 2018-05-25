@@ -57,8 +57,8 @@ dir:
 #	gcc -o build/server -lssl -lcrypto build/obj/server.o
 
 # attention: this is machine-dependant (depends on openssl installation)
-build/connectionH: src/server/connection_handler.c src/server/server.c src/server/server.h src/utils/logger.c build/obj/kvs.o src/server/access_handler.c src/utils/string_stuff.c src/server/authentification.c
-	gcc -o build/connectionH src/server/authentification.c src/utils/string_stuff.c src/utils/logger.c build/obj/kvs.o src/server/access_handler.c src/server/connection_handler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
+build/connectionH: src/server/connection_handler.c src/server/server.c src/server/server.h src/utils/logger.c build/obj/key_value_v3.o src/server/access_handler.c src/utils/string_stuff.c src/server/authentification.c
+	gcc -o build/connectionH src/server/authentification.c src/utils/string_stuff.c src/utils/logger.c build/obj/key_value_v3.o src/server/access_handler.c src/server/connection_handler.c -lssl -lcrypto src/server/server.c -lssl -lcrypto -L/usr/local/opt/openssl/lib -I/usr/local/opt/openssl/include -pthread
 
 #build/kvs: build/obj/kvs.o src/server/key_value.h
 #	gcc -o build/kvs build/obj/kvs.o
@@ -78,6 +78,10 @@ build/ui: src/client/client.c src/client/ui.c src/client/ui.h src/utils/logger.c
 
 build/kvs2: src/server/key_value_v2.c src/server/key_value_v2.h
 	gcc src/server/key_value_v2.c -o build/kvs2
+
+#build/kvs3: src/server/key_value_v3.c src/server/key_value_v3.h src/test/kvs3test.c
+#		gcc src/server/key_value_v3.c src/utils/logger.c src/utils/string_stuff.c src/test/kvs3test.c -o build/kvs3
+
 #object files
 
 #build/obj/client.o: src/client/client.c
@@ -86,8 +90,8 @@ build/kvs2: src/server/key_value_v2.c src/server/key_value_v2.h
 build/obj/kvs_test.o: src/test/kvs_test.c
 	gcc -pthread -c src/test/kvs_test.c -o build/obj/kvs_test.o
 
-build/obj/kvs.o: src/server/kvs.c
-	gcc -pthread -c src/server/kvs.c -o build/obj/kvs.o
+build/obj/key_value_v3.o: src/server/key_value_v3.c
+	gcc -pthread -c src/server/key_value_v3.c -o build/obj/key_value_v3.o
 
 build/obj/server.o: src/server/server.c
 	gcc -pthread -c src/server/server.c -o build/obj/server.o -lssl

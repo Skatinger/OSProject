@@ -104,8 +104,51 @@ int main(int argc, char const *argv[]) {
       continue;
     }
 
+    else if (!strcmp(input, "spam")) {
+      spam();
+    }
+
+    else if (!strcmp(input, "preimage")) {
+      preimage();
+    }
+
   }
   return 0;
+}
+
+static void preimage() {
+  printf("Hi. This function can be used to get the keys that belong to a certain\n");
+  printf("value. But beware! This may take long.\n");
+  printf("You sure? [Y/n]\n");
+  scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
+  if (!strcmp(input, "n")) {
+    return;
+  } else if (strcmp(input, "Y")) {
+    preimage();
+  }
+  printf("\nEnter the value\n");
+  scanf("%s", input);
+  logger(concat(2, "UINTPUT: ", input), INFO);
+
+  c_send_TLS(KEY(input));
+  c_receive_TLS(buffer);
+  if (get_response_nr() != SUCCESS_KEY_NR) {
+    printf("Didn't seem to work\n");
+    print_error_message();
+  } else {
+    printf("There you go:\n");
+    printf("\t%s", getFirstParam(buffer));
+  }
+}
+
+static void spam() {
+  int num;
+  scanf("%d", &num);
+  for (int i = 0; i < num; i++) {
+    c_send_TLS(PUT(concat(2, "key", itoa(i, 10)), concat(2,"value", itoa(i%10, 10))));
+    c_receive_TLS(buffer);
+  }
 }
 
 static void get() {

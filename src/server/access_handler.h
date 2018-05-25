@@ -8,9 +8,12 @@
 #define DEL 1
 #define UPD 2
 
+#define GET 0
+#define KEY 1
+
 void init_access_handler(pthread_key_t* USERNAME_key, char* root_pw);
 
-char* reader(char* key);
+char* reader(char* key, int type);
 
 char* writer(char* key, char* value, int action);
 

@@ -2,7 +2,7 @@
 #define AUTHENTIFICATION
 
 #include "../project.h"
-#include "key_value.h"
+#include "key_value_v3.h"
 #include <stdint.h>
 #include <pthread.h>
 
@@ -14,7 +14,6 @@
 
 #define MAXUSERS 1000
 #define SALT_LENGTH 64
-#define ALPHABET_SIZE 26
 
 #define ADMIN 1
 #define NORMAL 0

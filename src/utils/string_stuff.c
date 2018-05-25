@@ -27,6 +27,14 @@ char* intToString(int num) {
   return ret;
 }
 
+char* itoa(int num, int length) {
+  char* ret = malloc((length+1)*sizeof(char));
+  sprintf(ret, "%d", num);
+  ret[length] = 0;
+  return ret;
+  
+}
+
 char* concatCode(int code, int nbWords, ...) {
   va_list vlist;
   va_start(vlist, nbWords);

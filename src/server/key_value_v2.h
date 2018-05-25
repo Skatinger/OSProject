@@ -7,7 +7,7 @@
 #define ERR 1
 
 /* This is yet to be optimised */
-#define MAX_ADDRESS 4294967296 // 2^32 - 1
+#define MAX_ADDRESS (unsigned int) 4294967295 // 2^32 - 1
 #define SLOTS 16
 
 

@@ -100,7 +100,7 @@ int addUser(user_db_t* db, char* username, char* password, int rights) {
 
   if (rep == SUCCESS) {
     return 0;
-  } else if (rep == KEY_IN_USE_ERROR) {
+  } else if (rep == NO_SUCH_KEY) {
     return ERROR_USERNAME_TAKEN;
   } else {
     return ERROR_GEN;

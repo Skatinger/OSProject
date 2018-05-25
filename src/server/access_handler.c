@@ -2,7 +2,7 @@
 
 #include "server_responses.h"
 #include "access_handler.h"
-#include "key_value.h"
+#include "key_value_v3.h"
 #include "authentification.h"
 #include "../utils/logger.h"
 #include <string.h>
@@ -71,7 +71,7 @@ char* logout() {
   pthread_mutex_lock(&users_lock);
 
   // If the caller doesn't actually have access,
-  // they should not be allowed to log out, hence return 
+  // they should not be allowed to log out, hence return
   if (get_access(users, username) < NORMAL) {
     pthread_mutex_unlock(&users_lock);
     // TODO: perhaps give error message here.
@@ -83,7 +83,7 @@ char* logout() {
   return SUCCESS_LOGOUT;
 }
 
-char* reader(char* key) {
+char* reader(char* input, int TYPE) {
   char* username;
   int rights;
   char* value;
@@ -110,8 +110,19 @@ char* reader(char* key) {
   // unlock the counter
   pthread_mutex_unlock(&counter_lock);
 
+  char* reply;
   // ACTUAL KVS ACCESS
-  value = (char*) get(kvs, key);
+  switch(TYPE) {
+    case GET:
+      value = (char*) get(kvs, input);
+      reply = value != NULL ? SUCCESS_GOT(input, value) : ERROR_KEY_NOT_FOUND(input);
+      break;
+    case KEY:
+      value =  keys_for_string_value(kvs, input);
+      reply = value != NULL ? SUCCESS_KEY(value) : ERROR_VALUE_INVALID;
+      break;
+  }
+
 
   // decrement the counter again
   pthread_mutex_lock(&counter_lock);
@@ -123,7 +134,9 @@ char* reader(char* key) {
     writer_waiting = FALSE;
   }
   pthread_mutex_unlock(&counter_lock);
-  return value != NULL ? SUCCESS_GOT(key, value) : ERROR_KEY_NOT_FOUND(key);
+
+
+  return reply;
 }
 
 char* user_db_new(char *username, char* password){
@@ -232,9 +245,9 @@ char* writer(char* key, char* value, int type) {
   switch (type) {
     case PUT:
       n = set(kvs, key, (void*) value);
-      if (n == KEY_IN_USE_ERROR) {
+      if (n == KEY_TAKEN) {
         ret = ERROR_KEY_OCCUPIED(key);
-      } else if (n == STORAGE_FULL_ERROR) {
+      } else if (n == OVERFLOW) {
         ret = ERROR_SERVER_FULL;
       } else if (n == SUCCESS) {
         ret = SUCCESS_PUT(key, value);
@@ -266,5 +279,5 @@ char* writer(char* key, char* value, int type) {
 
 
 void end_access_handler() {
-  printKVS(kvs);
+  print_kvs(kvs);
 }

@@ -12,6 +12,7 @@
 #define SUCCESS_PUT_NR    20
 #define SUCCESS_DEL_NR    30
 #define SUCCESS_UPD_NR    40
+#define SUCCESS_KEY_NR    00
 #define SUCCESS_LOGIN_NR  50
 #define SUCCESS_LOGOUT_NR 60
 #define SUCCESS_ADD_U_NR  70
@@ -39,6 +40,7 @@
 #define SUCCESS_PUT(K,V) concatCode(SUCCESS_PUT_NR, 5, " PUT ", K, ":", V, ";\n")
 #define SUCCESS_DEL(K,V) concatCode(SUCCESS_DEL_NR, 5, " DELETED ", K, ":", V, ";\n")
 #define SUCCESS_UPD(K,V) concatCode(SUCCESS_UPD_NR, 5, " UPDATED ", K, ":", V, ";\n")
+#define SUCCESS_KEY(Ks) concatCode(SUCCESS_KEY_NR, 3, " KEYS ", Ks, ";")
 #define SUCCESS_LOGIN(U) concatCode(SUCCESS_LOGIN_NR, 3, " USER ", U, " LOGGED IN;\n")
 #define SUCCESS_LOGOUT  concatCode(SUCCESS_LOGOUT_NR, 1, " LOGOUT SUCCESSFUL;\n")
 #define SUCCESS_ADD_U(U) concatCode(SUCCESS_ADD_U_NR, 3, " USER ", U, " ADDED;\n")

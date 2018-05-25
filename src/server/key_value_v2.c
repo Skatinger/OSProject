@@ -87,10 +87,10 @@ static void remove_node(BT* tree, unsigned int hash_angle) {
 
 static Node* find_node_after(BT* tree, unsigned int hash_angle) {
   Node* current = tree->root;
-  Node* parent = NULL:
+  Node* parent = NULL;
 
   while (current != NULL && current->hash_angle < hash_angle) {
-    current
+    //current
   }
 }
 
