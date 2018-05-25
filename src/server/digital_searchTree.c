@@ -122,7 +122,7 @@ int replace(Node* root, char* key, void* value){
 
 int main(int argc, char const *argv[]) {
     Node* root = createTree(M);
-    
+
 
     insert_node(tree, seventeen);
     insert_node(tree, three_fourths);
