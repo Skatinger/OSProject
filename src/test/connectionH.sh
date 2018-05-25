@@ -1,6 +1,7 @@
 #!/bin/bash
 echo 'chosen password is' $1
-yes $1 | ./../../build/connectionH &
+#./../../build/connectionH &
+echo 1 | ./../../build/connectionH &
 echo 'press ctrl + c to interrupt server'
 while :
 do
