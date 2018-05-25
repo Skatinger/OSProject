@@ -10,20 +10,50 @@ from typing import List, Any
 ####### input for test files ############
 client_output_login = """
 
-```````````````````````````````````````````````
-`Welcome to the trivial client implementation!`
-```````````````````````````````````````````````
+[32m[1mArt by Tua Xiong
+                 \ __
+--==/////////////[})))==*
+                 / \ '          ,|
+                    `\`\      //|                             ,|
+                      \ `\  //,/'                           -~ |
+   )             _-~~~\  |/ / |'|                       _-~  / ,
+  ((            /' )   | \ / /'/                    _-~   _/_-~|
+ (((            ;  /`  ' )/ /''                 _ -~     _-~ ,/'
+ ) ))           `~~\   `\/'/|'           __--~~__--\ _-~  _/, 
+((( ))            / ~~    \ /~      __--~~  --~~  __/~  _-~ /
+ ((\~\           |    )   | '      /        __--~~  \-~~ _-~
+    `\(\    __--(   _/    |'\     /     --~~   __--~' _-~ ~|
+     (  ((~~   __-~        \~\   /     ___---~~  ~~\~~__--~ 
+      ~~\~~~~~~   `\-~      \~\ /           __--~~~'~~/
+                   ;\ __.-~  ~-/      ~~~~~__\__---~~ _..--._
+                   ;;;;;;;;'  /      ---~~~/_.-----.-~  _.._ ~\     
+                  ;;;;;;;'   /      ----~~/         `\,~    `\ \        
+                  ;;;;'     (      ---~~/         `:::|       `\.      
+                  |'  _      `----~~~~'      /      `:|        ()))),      
+            ______/\/~    |                 /        /         (((((())  
+          /~;;.____/;;'  /          ___.---(   `;;;/             )))'`))
+         / //  _;______;'------~~~~~    |;;/\    /                ((   ( 
+        //  \ \                        /  |  \;;,\                 `   
+       (<_    \ \                    /',/-----'  _> 
+        \_|     \_                 //~;~~~~~~~~~ 
+                 \_|               (,~~   -Tua Xiong
+                                    \~
+                                     ~~[0m
 
+[32m[1m```````````````````````````````````````````````
+[0m[32m[1m`Welcome to the trivial client implementation!`
+[0m[32m[1m```````````````````````````````````````````````
+[0m
+[32mLike this Greek mythological messenger, it will carry
+[0m[32mwhat you have to say to the server!
 
->> Trying to connect to 127.0.0.1
--- Created socket --
--- Joined socket with tls -- 
--- Connected to server -- 
+[0m>> Trying to connect to 127.0.0.1
 Please provide your username:
 Please provide your password
 Thanks. Checking ...
 Succesfully logged in!
 Enter a command. 'help' will print help.
+
 """
 client_output_put = """
 $ Specify the key you want to add
@@ -32,9 +62,8 @@ And the value for key value
 New key and value successfully set!
 """
 
-client_output_quit = """
-$ Quitting
-
+client_output_quit = """$ Logging out
+Quitting
 """
 
 client_output_get = """
@@ -44,7 +73,7 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 20
+clientcount = 1
 #number of key-value pairs inserted
 N = 10
 
@@ -111,26 +140,21 @@ def init():
 
 
 def tons_of_readers():
-    for i in range(1):
+    for i in range(clientcount):
         p = subprocess.Popen(client_reader_start + str(i), shell=True)
         list_of_processes.append(p)
 
 
 def tons_of_writers():
-    for i in range(1):
+    for i in range(clientcount):
         p = subprocess.Popen(client_writer_start + str(i), shell=True)
         list_of_processes.append(p)
 
 
 # primary scripts
-def test_readers():
-    init()
-    tons_of_readers()
-
-
-def test_writers():
-    init()
+def test_put_get():
     tons_of_writers()
+    tons_of_readers()
 
 
 def cleanup():
@@ -145,6 +169,6 @@ generate_client_files()
 generate_root_client_file()
 
 #start tests
-#test_readers()
-
+init()
+test_put_get()
 cleanup()
