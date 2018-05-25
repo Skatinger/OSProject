@@ -91,7 +91,7 @@ list_of_processes = []  # type: List[pid]
 def generate_root_client_file():
     f = open("rootinput.txt", "w+")
     f.write("root\n" + root_password + "\n")
-    for i in range (clientcount):
+    for i in range (clientcount*2):
         f.write("addUser\n" + str(i) + "\n" + str(i) + "\n")
     f.close()
 
@@ -147,7 +147,7 @@ def tons_of_readers():
 
 def tons_of_writers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_writer_start + str(i), shell=True)
+        p = subprocess.Popen(client_writer_start + str(i+clientcount), shell=True)
         list_of_processes.append(p)
 
 
