@@ -73,7 +73,7 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 50
+clientcount = 5
 put_length = 10
 # number of key-value pairs inserted
 N = 10
@@ -140,21 +140,21 @@ def generate_client_files():
 def init_base():
     pserver = subprocess.Popen("./connectionH.sh")
     time.sleep(0.1)
-    list_of_processes.append(pserver)
+    list_of_processes.append(pserver.pid)
     proot = subprocess.Popen("./root.sh")
-    list_of_processes.append(proot)
+    list_of_processes.append(proot.pid)
 
 
 def init_tons_of_readers():
     for i in range(clientcount):
         p = subprocess.Popen(client_reader_start + str(i + clientcount), shell=True)
-        list_of_processes.append(p)
+        list_of_processes.append(p.pid)
 
 
 def init_tons_of_writers():
     for i in range(clientcount):
         p = subprocess.Popen(client_writer_start + str(i), shell=True)
-        list_of_processes.append(p)
+        list_of_processes.append(p.pid)
 
 
 # primary scripts
@@ -193,10 +193,12 @@ def validate_readers():
 
 def cleanup():
     # kill all possibly still running processes
-    for process in list_of_processes:
-        os.kill(process.pid, signal.SIGKILL)
+    for i in list_of_processes:
+        os.kill(i, signal.SIGINT)
     # remove temporary txt files
     os.system("rm *.txt")
+    #kills all leftovers of connectionH
+    os.system("kill $(ps aux | grep '[c]onnectionH' | awk '{print $2}')")
 
 
 # generate needed files
@@ -212,6 +214,7 @@ init_base()
 
 #wait for all testing to finish
 time.sleep(clientcount / 4)
-
+for process in list_of_processes:
+    print(process)
 # clean up files
 cleanup()
