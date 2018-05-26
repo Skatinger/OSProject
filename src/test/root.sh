@@ -1,4 +1,4 @@
 #!/bin/bash
-
-cat rootinput.txt | ./../../build/ui 127.0.0.1
-
+cd ..
+cd ..
+cat src/test/rootinput.txt | ./build/ui 127.0.0.1

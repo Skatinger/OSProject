@@ -8,7 +8,7 @@ import subprocess
 from typing import List, Any
 
 ####### input for test files ############
-client_output_login = """
+output_client_login = """
 
 [32m[1mArt by Tua Xiong
                  \ __
@@ -73,102 +73,145 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 1
-#number of key-value pairs inserted
+clientcount = 50
+put_length = 10
+# number of key-value pairs inserted
 N = 10
 
-serverstart = "gnome-terminal -- ./connectionH.sh " + root_password
-rootstart = "gnome-terminal -- ./root.sh " + root_password
-client_writer_start = "gnome-terminal -- ./client_writer.sh "
-client_reader_start = "gnome-terminal -- ./client_reader.sh "
+client_writer_start = "./client_writer.sh "
+client_reader_start = "./client_reader.sh "
 
-#used to kill all child processes at the end
+# used to kill all child processes at the end
 list_of_processes = []  # type: List[pid]
 
 
 # generating root login file
-#root creates clientcount number of users with usernames ranging from zero to clientcount
+# root creates clientcount number of users with usernames ranging from zero to clientcount
 def generate_root_client_file():
     f = open("rootinput.txt", "w+")
     f.write("root\n" + root_password + "\n")
-    for i in range (clientcount*2):
+    # 2 * clientcount because first half is writers, second half is readers
+    for i in range(clientcount * 2):
         f.write("addUser\n" + str(i) + "\n" + str(i) + "\n")
+    f.write("quit")
     f.close()
 
 
-#generates a input file for testing for each client
+# generates a input file for testing for each client
 def generate_client_files():
+    server_file = open("con.txt", "w+")
+    server_file.write("123")
+    server_file.close()
     for j in range(clientcount):
-        #create files for each client
-        client1 = open("client_writer_input" + str(j) + ".txt", "w+")
-        client2 = open("client_reader_input" + str(j) + ".txt", "w+")
-        diff1 = open("diff_writer" + str(j) + ".txt", "w+")
-        diff2 = open("diff_reader" + str(j) + ".txt", "w+")
+        h = j + clientcount
+        # create package of writerX, readerX and expected_outputX for both
+        writerX = open("input_writer" + str(j) + ".txt", "w+")
+        readerX = open("input_reader" + str(h) + ".txt", "w+")
+        expected_output_writerX = open("expected_output_writer" + str(j) + ".txt", "w+")
+        expected_output_readerX = open("expected_output_reader" + str(h) + ".txt", "w+")
 
-        #write login stuff to files
-        client1.write(str(j) + "\n" + str(j) + "\n")
-        client2.write(str(j) + "\n" + str(j) + "\n")
-        diff1.write(client_output_login)
-        diff2.write(client_output_login)
+        # write login stuff to files
+        writerX.write(str(j) + "\n" + str(j) + "\n")
+        readerX.write(str(h) + "\n" + str(h) + "\n")
+        expected_output_writerX.write(output_client_login)
+        expected_output_readerX.write(output_client_login)
 
-        #write put / get stuff
+        # write put / get for clients, write expected output
         for i in range(N):
-            rand1 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
-            rand2 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
-            client1.write("put\n" + rand1 + "\n" + rand2 + "\n")
-            client2.write("get\n" + rand1 + "\n")
-            diff1.write(client_output_put)
-            diff2.write(client_output_get + rand2)
-        #write quitting stuff
-        client1.write("quit\n")
-        client2.write("quit\n")
-        diff1.write(client_output_quit)
-        diff2.write(client_output_quit)
+            rand1 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(put_length))
+            rand2 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(put_length))
+            writerX.write("put\n" + rand1 + "\n" + rand2 + "\n")
+            readerX.write("get\n" + rand1 + "\n")
+            expected_output_writerX.write(client_output_put)
+            expected_output_readerX.write(client_output_get + rand2)
+        # write quitting stuff
+        writerX.write("quit\n")
+        readerX.write("quit\n")
+        expected_output_writerX.write(client_output_quit)
+        expected_output_readerX.write(client_output_quit)
 
-        #close files
-        client1.close()
-        client2.close()
-        diff1.close()
-        diff2.close()
+        # close files
+        writerX.close()
+        readerX.close()
+        expected_output_writerX.close()
+        expected_output_readerX.close()
 
 
-def init():
-    pserver = subprocess.Popen(serverstart, shell=True)
+def init_base():
+    pserver = subprocess.Popen("./connectionH.sh")
+    time.sleep(0.1)
     list_of_processes.append(pserver)
-    proot = subprocess.Popen(rootstart, shell=True)
+    proot = subprocess.Popen("./root.sh")
     list_of_processes.append(proot)
 
 
-def tons_of_readers():
+def init_tons_of_readers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_reader_start + str(i), shell=True)
+        p = subprocess.Popen(client_reader_start + str(i + clientcount), shell=True)
         list_of_processes.append(p)
 
 
-def tons_of_writers():
+def init_tons_of_writers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_writer_start + str(i+clientcount), shell=True)
+        p = subprocess.Popen(client_writer_start + str(i), shell=True)
         list_of_processes.append(p)
 
 
 # primary scripts
 def test_put_get():
-    tons_of_writers()
-    tons_of_readers()
+    init_base()
+    time.sleep(1)
+    print("waiting for base to init")
+    init_tons_of_writers()
+    init_tons_of_readers()
+    validate()
+
+
+def validate():
+    if validate_writers():
+        print("Writers Test successful")
+    else:
+        print("Writers Test unsuccessful")
+    if validate_readers():
+        print("Readers test successful")
+    else:
+        print("Readers test unsuccessful")
+
+
+def validate_writers():
+    print("opening writer_exit.txt")
+    if 'failed' in open("writer_exit.txt").read():
+        return False
+    return True
+
+
+def validate_readers():
+    if 'failed' in open("reader_exit.txt").read():
+        return False
+    return True
 
 
 def cleanup():
-    #kill all processes
+    # kill all possibly still running processes
     for process in list_of_processes:
         os.kill(process.pid, signal.SIGKILL)
+    # remove temporary txt files
     os.system("rm *.txt")
 
 
-#generate needed files
+# generate needed files
 generate_client_files()
 generate_root_client_file()
 
-#start tests
-init()
-test_put_get()
+#start server and create users
+init_base()
+
+# start tests
+#test_put_get()
+
+
+#wait for all testing to finish
+time.sleep(clientcount / 4)
+
+# clean up files
 cleanup()
