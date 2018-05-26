@@ -1,19 +1,13 @@
 #!/bin/bash
 
+# change to project directory for execution
+
 cd ..
 cd ..
-
-
-#opens program, enters input file, outputs to output file,
-#checks for differences between output and expected output, then quits
 
 #$1 is the client number. used to find correct input file
-echo hello from client_reader$1
 # If number of arguments less then 1; print usage and exit
-
-#for testing
 if [ $# -lt 1 ]; then
-    printf "Usage: %s <reader number>\n" "$0" >&2
     exit 1
 fi
 
@@ -26,14 +20,6 @@ file_in=$"src/test/input_reader$1.txt"
 file_out_val="src/test/output_reader$1.txt"
 file_out_expected="src/test/expected_output_reader$1.txt"
 
-#ensure it works, remove later
-echo my working files are:
-echo input: $file_in
-echo output: $file_out_val
-echo expected output: $file_out_expected
-echo
-
-
 # Validate infile exists (do the same for out validate file)
 if [ ! -f "$file_in" ]; then
     printf "In file %s is missing\n" "$file_in"
@@ -45,7 +31,7 @@ fi
 #create outputfile
 if [ ! -f "$file_out_val" ]; then
     printf "creating output file %s\n" "$file_out_val"
-    touch src/test/output_writer$1.txt
+    touch src/test/output_reader$1.txt
 fi
 
 printf "Testing %s against %s\n" "$file_out_val" "$file_out_expected"
@@ -60,6 +46,7 @@ $diff "$file_out_expected" "$file_out_val"
 # Check exit code of diff
 # adding this to a variable to be able to print it
 # Iff not 0 then the files differ (at least with diff)
+# python script will evaluate exit files
 e_code=$?
 if [ $e_code != 0 ]; then
         printf "TEST FAIL : %d\n" "$e_code"
