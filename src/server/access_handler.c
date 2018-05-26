@@ -75,7 +75,6 @@ char* ah_logout() {
   // they should not be allowed to log out, hence return
   if (u_get_access(users, username) < NORMAL) {
     pthread_mutex_unlock(&node->lock);
-    // TODO: perhaps give error message here.
     return SUCCESS_LOGOUT;
   }
   u_set_access_logged_in(users, username, FALSE);

@@ -225,7 +225,6 @@ static void update() {
 }
 
 static void quit() {
-  // TODO: implement logging out first (in server)
   printf("Logging out\n");
   logger("logging out & quitting", INFO);
   c_send_TLS(LOGOUT(username));
@@ -294,8 +293,7 @@ static void u_add_user() {
   char username[USER_BUF];
   char password[USER_BUF];
   char c;
-  //char* access_rights
-  //todo validate root password again before allowing changes to user database
+
   printf("Name for new user:\n");
   scanf("%s", input);
   strcpy(username, input);
@@ -317,8 +315,7 @@ static void u_add_user() {
 static void u_delete_user() {
   char username[USER_BUF];
   char c;
-  //char* access_rights
-  //todo validate root password again before allowing changes to user database
+
   printf("Please enter the username of the user you want to delete:\n");
   scanf("%s", input);
   strcpy(username, input);
@@ -338,8 +335,7 @@ static void u_delete_user() {
 static void make_admin() {
   char username[USER_BUF];
   char c;
-  //char* access_rights
-  //todo validate root password again before allowing changes to user database
+
   printf("Please enter the username of the user you want make an admin:\n");
   scanf("%s", input);
   strcpy(username, input);

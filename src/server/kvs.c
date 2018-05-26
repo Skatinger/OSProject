@@ -50,8 +50,6 @@ int kvs_set(KVS *t, char* key, void* value) {
   if (kvs_get(t, key) != NULL) {return KEY_IN_USE_ERROR;}
     if(t->load == t->size) return STORAGE_FULL_ERROR;//table is full
     int index = hashFunc(t, key);
-    //TODO: FIX (gets caught in loop)
-    //printf("index: %d has value %s\n", index, t->table[index].key);
 
     while(t->table[index].key != NULL){
         index += reHash(t, index);
@@ -81,7 +79,6 @@ void* kvs_get(KVS *t, char *key) {
     return t->table[index].key!=NULL ? t->table[index].value : NULL;
 }
 
-//TODO throws segFault
 void* kvs_del(KVS *t, char *key) {
     if (t->load == 0) return NULL;
     int index = hashFunc(t, key);
@@ -101,7 +98,6 @@ void* kvs_del(KVS *t, char *key) {
 }
 
 int kvs_replace(KVS* t, char* key, void* value){
-    //TODO
     int index = hashFunc(t, key);
     int tmp = index;
 
@@ -142,7 +138,6 @@ KVS* kvs_create(int size) {
     }
     return newStore;
 }
-//TODO: this is horseradish
 void kvs_destroy(KVS* store){
     //free KeyValuePairs
     int i;

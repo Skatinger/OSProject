@@ -116,7 +116,6 @@ char* kvs_keys_for_string_value(KVS* kvs, char* value) {
 }
 
 unsigned int kvs_hash_angle(char* key) {
-    // TODO: Find good hash function THAT UNIFORMLY DISTRIBUTES STUFF ON CIRCLE
     unsigned int h;
     char* tmp = key;
     for (h = 0; *key != '\0'; key++) {
