@@ -34,7 +34,6 @@ int main(int argc, char const *argv[]) {
 
   // new thread that waits for connections
   pthread_create(&pid, NULL, accept_new_connections, (void*)root_pw);
-
   // mechanism to stop the server
   c = getchar();
   if (c == 'c') {
@@ -105,7 +104,8 @@ static char* parse_message(char* msg) {
 
   // and switching over it
   if (!strcmp(cmd, "GET")) {
-    return ah_reader(ss_get_first_param(msg), GET);
+    return ah_get(ss_get_first_param(msg));
+    //return ah_reader(ss_get_first_param(msg), GET);
   }
   else if (!strcmp(cmd, "PUT")) {
     return ah_writer(ss_get_first_param(msg), ss_get_second_param(msg), PUT);
@@ -132,7 +132,7 @@ static char* parse_message(char* msg) {
     return BYE;
   }
   else if (!strcmp(cmd, "KEY")) {
-    return ah_reader(ss_get_first_param(msg), KEY);
+    return ah_keys(ss_get_first_param(msg));
   }
   else if (!strcmp(cmd, "LOGIN")) {
     char* username = ss_get_first_param(msg);

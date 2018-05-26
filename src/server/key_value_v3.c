@@ -3,6 +3,7 @@
 #include "../utils/string_stuff.h"
 #include <stdlib.h>
 #include <string.h>
+// #include <semaphore.h>
 
 KVS* kvs_create() {
     KVS* kvs = malloc(sizeof(KVS));
@@ -124,6 +125,79 @@ unsigned int kvs_hash_angle(char* key) {
     return h;
 }
 
+Node* kvs_find_node(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  return node;
+}
+
+// void kvs_lock_node(Node* node, char* key) {
+//   pthread_mutex_lock(&node->lock);
+// }
+//
+// void kvs_unlock_node(Node* node, char* key) {
+//   pthread_mutex_unlock(&node->lock);
+// }
+
+void kvs_lock_all(KVS* kvs) {
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    pthread_mutex_lock(&i->lock);
+  }
+}
+
+void kvs_unlock_all(KVS* kvs) {
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    pthread_mutex_unlock(&i->lock);
+  }
+}
+
+void kvs_inc_reader_count_all(KVS* kvs) {
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    i->reader_count++;
+  }
+}
+
+void kvs_dec_reader_count_all(KVS* kvs) {
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    i->reader_count--;
+  }
+}
+
+int kvs_get_reader_count(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  return node->reader_count;
+}
+
+int kvs_get_writer_waiting(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  return node->writer_waiting;
+}
+
+int kvs_get_writer_done(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  return node->writer_done;
+}
+
+void kvs_set_writer_waiting(KVS* kvs, char* key, int waiting) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  node->writer_waiting =  waiting;
+}
+
+void kvs_set_writer_done(KVS* kvs, char* key, int done) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  node->writer_done =  done;
+}
+
+void kvs_inc_reader_count(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  node->reader_count++;
+}
+
+void kvs_dec_reader_count(KVS* kvs, char* key) {
+  Node* node = find_node_after(kvs->key_nodes, kvs_hash_angle(key));
+  node->reader_count--;
+}
+
+
 void print_kvs(KVS* kvs) {
     kvs_print_tables_list(kvs->key_nodes, TRUE);
 }
@@ -163,6 +237,9 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
     // check if the new node is 'before' (in the sense has a lower angle) or
     // 'after' on the circle
 
+    // lock the new node so people cannot make fucky wooky while it's being
+    // filled
+    pthread_mutex_lock(&new->lock);
     if (new_angle < node->hash_angle) {
         // in that case, we remove all the kvp's from the node which have an
         // angle <= new angle
@@ -170,6 +247,7 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
         for (int i = 0; i < SLOTS; i++) {
             if (node->table[i] == NULL) continue;
             kvs_angle = kvs_hash_angle(node->table[i]->key);
+
             if (kvs_angle <= new_angle) {
                 insert_into_node(new, node->table[i]);
                 node->table[i] = NULL;
@@ -190,6 +268,7 @@ static int split_up_node(LL* list, Node *node, Node* prev) {
             // otherwise leave it there
         }
     }
+    pthread_mutex_unlock(&new->lock);
     return 0;
 }
 
@@ -216,7 +295,11 @@ static Node* create_node(unsigned int hash_angle) {
     }
     node->next = NULL;
     node->load = 0;
-
+    pthread_mutex_init(&node->lock, NULL);
+    pthread_mutex_init(&node->counter_lock, NULL);
+    node->reader_count = 0;
+    node->writer_waiting = FALSE;
+    node->writer_done = FALSE;
     return node;
 }
 

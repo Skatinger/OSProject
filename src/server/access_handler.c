@@ -3,36 +3,30 @@
 #include "server_responses.h"
 #include "access_handler.h"
 #include "key_value_v3.h"
-#include "authentification.h"
+#include "authentication.h"
 #include "../utils/logger.h"
 #include <string.h>
 
 static user_db_t* users;
 static KVS* kvs;
-static pthread_mutex_t users_lock;
-static pthread_mutex_t kvs_lock;
-static pthread_mutex_t counter_lock;
-static int writer_waiting;
-static int writer_done;
-static int reader_count;
+int writer_waiting;
+int writer_done;
+int reader_count;
 
 static int STORE_SIZE = 1000;
 pthread_key_t* USERNAME;
+
 
 void ah_init_access_handler(pthread_key_t* USERNAME_key, char* root_pw) {
   users = u_init_user_db();
   u_add_user(users, "root", root_pw, ADMIN);
   kvs = kvs_create(STORE_SIZE);
-  pthread_mutex_init(&kvs_lock, NULL);
-  pthread_mutex_init(&users_lock, NULL);
-  pthread_mutex_init(&counter_lock, NULL);
+
 
   // This is the key used to get the thread-global username.
   USERNAME = USERNAME_key;
 
-  writer_waiting = FALSE;
-  writer_done = FALSE;
-  reader_count = 0;
+
 }
 
 char* ah_login(char* password) {
@@ -40,26 +34,32 @@ char* ah_login(char* password) {
   void* res;
   res = pthread_getspecific(*USERNAME);
   char* username = (char *) res;
+  int logged_in;
+  int credentials;
+  Node* user_dest = kvs_find_node(users->store, username);
 
-  logger("Acquiring user lock", INFO);
-  pthread_mutex_lock(&users_lock);
-  if (u_get_logged_in(users, username)) {
+  pthread_mutex_lock(&user_dest->lock);
+  logged_in = u_get_logged_in(users, username);
+  pthread_mutex_unlock(&user_dest->lock);
+  if (logged_in) {
     logger(ss_concat(2, username, "already logged in"), INFO);
-    pthread_mutex_unlock(&users_lock);
-    logger("User lock unlocked", INFO);
     return ERROR_ALREADY_LOGGEDIN(username);
   }
-  if (u_check_credentials(users, username, password)) {
+
+  pthread_mutex_lock(&user_dest->lock);
+  credentials = u_check_credentials(users, username, password);
+  pthread_mutex_unlock(&user_dest->lock);
+
+  if (credentials) {
     logger(ss_concat(2, "Setting logged_in to TRUE for ", username), INFO);
-    pthread_t* this_thread = malloc(sizeof(pthread_t));
-    // *this_thread = pthread_self();
-    // logger(ss_concat(2, "Current thread is ", ss_int_to_3digit_string(*this_thread), INFO);
+
+    pthread_mutex_lock(&user_dest->lock);
     u_set_access_logged_in(users, username, TRUE);
-    pthread_mutex_unlock(&users_lock);
+    pthread_mutex_unlock(&user_dest->lock);
     logger("User lock unlocked", INFO);
+
     return SUCCESS_LOGIN(username);
   } else {
-    pthread_mutex_unlock(&users_lock);
     logger("user lock unlocked", INFO);
     return ERROR_ACCESS_DENIED(username);
   }
@@ -68,72 +68,115 @@ char* ah_login(char* password) {
 char* ah_logout() {
   char* username;
   username = (char*) pthread_getspecific(*USERNAME);
-  pthread_mutex_lock(&users_lock);
+  Node* node = kvs_find_node(users->store, username);
+  pthread_mutex_lock(&node->lock);
 
   // If the caller doesn't actually have access,
   // they should not be allowed to log out, hence return
   if (u_get_access(users, username) < NORMAL) {
-    pthread_mutex_unlock(&users_lock);
+    pthread_mutex_unlock(&node->lock);
     // TODO: perhaps give error message here.
     return SUCCESS_LOGOUT;
   }
   u_set_access_logged_in(users, username, FALSE);
-  pthread_mutex_unlock(&users_lock);
+  pthread_mutex_unlock(&node->lock);
 
   return SUCCESS_LOGOUT;
 }
 
-char* ah_reader(char* input, int TYPE) {
+char* ah_keys(char* value) {
   char* username;
   int rights;
+  char* keys;
+  Node* user_dest;
+
+  username = (char*) pthread_getspecific(*USERNAME);
+  user_dest = kvs_find_node(users->store, username);
+  // if the user is not logged in, they may not read
+  pthread_mutex_lock(&user_dest->lock);
+  rights = u_get_access(users, username);
+  pthread_mutex_unlock(&user_dest->lock);
+  if (rights < 0) {
+    return ERROR_ACCESS_DENIED(username);
+  }
+  pthread_mutex_unlock(&user_dest->lock);
+
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    i->reader_count++;
+
+    // if this is the first reader or the writers are done and give back the db,
+    // acquire the lock for the kvs
+    if (i->reader_count == 1 || i->writer_done) {
+      pthread_mutex_lock(&i->lock);
+      i->writer_done = FALSE;
+    }
+  }
+
+  char* reply;
+  keys = (char*) kvs_keys_for_string_value(kvs, value);
+
+  reply = value != NULL ? SUCCESS_KEY(keys) : ERROR_VALUE_INVALID;
+
+  for (Node* i = kvs->key_nodes->first; i != NULL; i = i->next) {
+    i->reader_count--;
+    // if it was the last reader or there's a writer waiting, give back the lock
+    if (i->reader_count == 0 || i->writer_waiting) {
+      pthread_mutex_unlock(&i->lock);
+      i->writer_waiting = FALSE;
+    }
+  }
+
+  return reply;
+}
+
+char* ah_get(char* key) {
+  char* username;
+  int access;
   char* value;
+  Node* destination;
+  Node* user_dest;
 
   username = (char*) pthread_getspecific(*USERNAME);
 
-  // if the user is not logged in, he may not read
-  pthread_mutex_lock(&users_lock);
-  if ((rights = u_get_access(users, username)) < 0) {
-    pthread_mutex_unlock(&users_lock);
+  user_dest = kvs_find_node(users->store, username);
+  // if the user is not logged in, they may not read
+  pthread_mutex_lock(&user_dest->lock);
+  access = u_get_access(users, username);
+  pthread_mutex_unlock(&user_dest->lock);
+  if (access < 0) {
     return ERROR_ACCESS_DENIED(username);
   }
-  pthread_mutex_unlock(&users_lock);
-
   // lock the reader count and increment
-  pthread_mutex_lock(&counter_lock);
-  reader_count++;
+  //pthread_mutex_lock(&counter_lock);
+  //
+  destination = kvs_find_node(kvs, key);
+  destination->reader_count++;
+
   // if this is the first reader or the writers are done and give back the db,
   // acquire the lock for the kvs
-  if (reader_count == 1 || writer_done) {
-    pthread_mutex_lock(&kvs_lock);
-    writer_done = FALSE;
+  if (destination->reader_count == 1 || destination->writer_done) {
+    pthread_mutex_lock(&destination->lock);
+    destination->writer_done = FALSE;
   }
   // unlock the counter
-  pthread_mutex_unlock(&counter_lock);
+  //pthread_mutex_unlock(&counter_lock);
 
   char* reply;
-  // ACTUAL KVS ACCESS
-  switch(TYPE) {
-    case GET:
-      value = (char*) kvs_get(kvs, input);
-      reply = value != NULL ? SUCCESS_GOT(input, value) : ERROR_KEY_NOT_FOUND(input);
-      break;
-    case KEY:
-      value =  kvs_keys_for_string_value(kvs, input);
-      reply = value != NULL ? SUCCESS_KEY(value) : ERROR_VALUE_INVALID;
-      break;
-  }
+  value = (char*) kvs_get(kvs, key);
+
+  reply = value != NULL ? SUCCESS_GOT(key, value) : ERROR_KEY_NOT_FOUND(key);
 
 
   // decrement the counter again
-  pthread_mutex_lock(&counter_lock);
-  reader_count--;
+  //(&counter_lock);
+  destination->reader_count--;
 
   // if it was the last reader or there's a writer waiting, give back the lock
-  if (reader_count == 0 || writer_waiting) {
-    pthread_mutex_unlock(&kvs_lock);
-    writer_waiting = FALSE;
+  if (destination->reader_count == 0 || destination->writer_waiting) {
+    pthread_mutex_unlock(&destination->lock);
+    destination->writer_waiting = FALSE;
   }
-  pthread_mutex_unlock(&counter_lock);
+  //pthread_mutex_unlock(&counter_lock);
 
 
   return reply;
@@ -141,13 +184,21 @@ char* ah_reader(char* input, int TYPE) {
 
 char* ah_user_db_new(char *username, char* password){
   char* current_user;
+  int access;
   current_user = (char*) pthread_getspecific(*USERNAME);
 
-  if (u_get_access(users, current_user) >= ADMIN) {
-    pthread_mutex_lock(&users_lock);
+  Node* current_dest = kvs_find_node(users->store, current_user);
+  pthread_mutex_lock(&current_dest->lock);
+  access = u_get_access(users, current_user);
+  pthread_mutex_unlock(&current_dest->lock);
+
+  Node* new_dest = kvs_find_node(users->store, username);
+
+  if (access >= ADMIN) {
+    pthread_mutex_lock(&new_dest->lock);
     int r = u_add_user(users, username, password, NORMAL);
     logger("added new user\n", INFO);
-    pthread_mutex_unlock(&users_lock);
+    pthread_mutex_unlock(&new_dest->lock);
     if (r == SUCCESS) {
       return SUCCESS_ADD_U(username);
     } else if (r == ERROR_USERNAME_TOO_LONG) {
@@ -165,14 +216,31 @@ char* ah_user_db_new(char *username, char* password){
 
 char* ah_user_db_delete(char* username) {
   char* current_user;
+  int access;
+  int is_logged_in;
   current_user = (char*) pthread_getspecific(*USERNAME);
+  Node* current_dest = kvs_find_node(users->store, current_user);
+  pthread_mutex_lock(&current_dest->lock);
+  access = u_get_access(users, current_user);
+  pthread_mutex_unlock(&current_dest->lock);
 
-  if (u_get_access(users, current_user) >= ADMIN) {
-    pthread_mutex_lock(&users_lock);
+  // check if the user to be deleted is currently logged in.
+  Node* destination = kvs_find_node(users->store, username);
+
+
+  if (access >= ADMIN ) {
+    pthread_mutex_lock(&destination->lock);
     int r = u_delete_user(users, username);
+    pthread_mutex_unlock(&destination->lock);
+
     logger("deleted user\n", INFO);
-    pthread_mutex_unlock(&users_lock);
-    return r == 0 ? SUCCESS_DEL_U(username) : ERROR_USER_MODIFICATION;
+    if (r == SUCCESS) {
+      return SUCCESS_DEL_U(username);
+    } else if (r == ERROR_USER_LOGGEDIN) {
+      return  ERROR_USER_NOT_UPDATABLE(username);
+    } else {
+      return ERROR_USER_MODIFICATION;
+    }
   } else {
     return ERROR_NO_ADMIN(current_user);
   }
@@ -180,13 +248,33 @@ char* ah_user_db_delete(char* username) {
 
 char* ah_user_db_update(char* old_username, char* new_username, char* new_password) {
   char* current_user;
-  current_user = (char*) pthread_getspecific(*USERNAME);
+  Node* current_dest;
+  Node* new_dest;
+  int access;
 
-  if (u_get_access(users, current_user) >= ADMIN) {
-    pthread_mutex_lock(&users_lock);
+  current_user = (char*) pthread_getspecific(*USERNAME);
+  current_dest = kvs_find_node(users->store, current_user);
+
+  new_dest = kvs_find_node(users->store, new_username);
+  pthread_mutex_lock(&current_dest->lock);
+  access = u_get_access(users, current_user);
+  pthread_mutex_unlock(&current_dest->lock);
+
+  if (access >= ADMIN) {
+    if (new_dest != current_dest) {
+      // use a trylock here to avoid deadlock (if at the same time) the other
+      // node tries to lock both
+      int e = pthread_mutex_trylock(&new_dest->lock);
+      if (e != 0) {
+        // no lock can be obtained
+        return ERROR_USER_MODIFICATION;
+      }
+    }
     int r = u_update_user(users, old_username, new_username, new_password);
-    logger("deleted user\n", INFO);
-    pthread_mutex_unlock(&users_lock);
+    pthread_mutex_unlock(&current_dest->lock);
+    if (new_dest != current_dest) {
+      pthread_mutex_unlock(&new_dest->lock);
+    }
     if (r == SUCCESS) {
       return SUCCESS_CHG_U(old_username, new_username);
     } else if (r == ERROR_USERNAME_TOO_LONG) {
@@ -205,13 +293,18 @@ char* ah_user_db_update(char* old_username, char* new_username, char* new_passwo
 
 char* ah_user_db_admin(char* username) {
   char* current_user;
+  int access;
   current_user = (char*) pthread_getspecific(*USERNAME);
+  Node* current_dest = kvs_find_node(users->store, current_user);
+  pthread_mutex_lock(&current_dest->lock);
+  access = u_get_access(users, current_user);
+  pthread_mutex_unlock(&current_dest->lock);
 
-  if (u_get_access(users, current_user) >= ADMIN) {
-    pthread_mutex_lock(&users_lock);
+  Node* dest = kvs_find_node(users->store, username);
+  if (access >= ADMIN) {
+    pthread_mutex_lock(&dest->lock);
     int r = u_set_access_rights(users, username, ADMIN);
-    logger("deleted user\n", INFO);
-    pthread_mutex_unlock(&users_lock);
+    pthread_mutex_unlock(&dest->lock);
     return r == SUCCESS ? SUCCESS_MK_ADM(username) : ERROR_USER_MODIFICATION;
   } else {
     return ERROR_NO_ADMIN(current_user);
@@ -219,29 +312,34 @@ char* ah_user_db_admin(char* username) {
 }
 
 char* ah_writer(char* key, char* value, int type) {
-  // TODO: error stuff
   char* ret;
   char* whatever = malloc(BUFFER_SIZE * sizeof(char));
   int n;
   char* username = (char*) pthread_getspecific(*USERNAME);
-  int rights;
+  int access;
+  Node* destination, *user_dest;
+  destination = kvs_find_node(kvs, key);
+  user_dest = kvs_find_node(users->store, username);
 
   // Check if user actually has access
-  pthread_mutex_lock(&users_lock);
-  if ((rights = u_get_access(users, username)) < 0) {
-    pthread_mutex_unlock(&users_lock);
+  printf("getting user lock\n");
+  pthread_mutex_lock(&user_dest->lock);
+  access = u_get_access(users, username);
+  printf("ungetting user lock\n");
+  pthread_mutex_unlock(&user_dest->lock);
+  if (access < 0) {
+
     return ERROR_ACCESS_DENIED(username);
   }
-  pthread_mutex_unlock(&users_lock);
+  //pthread_mutex_unlock(&user_dest->lock);
 
 
-  pthread_mutex_lock(&counter_lock);
-  writer_waiting = TRUE;
-  pthread_mutex_unlock(&counter_lock);
-  pthread_mutex_lock(&kvs_lock);
-  // TODO: Actually check for what the kvs is trying desperatley to let
-  // you know
-  //komment
+  //pthread_mutex_lock(&counter_lock);
+  destination->writer_waiting = TRUE;
+  //pthread_mutex_unlock(&counter_lock);
+  //
+  pthread_mutex_lock(&destination->lock);
+
   switch (type) {
     case PUT:
       n = kvs_set(kvs, key, (void*) value);
@@ -269,10 +367,10 @@ char* ah_writer(char* key, char* value, int type) {
       // ret = "hmmm";
       break;
   }
-  pthread_mutex_lock(&counter_lock);
-  writer_done = TRUE;
-  pthread_mutex_unlock(&counter_lock);
-  pthread_mutex_unlock(&kvs_lock);
+  //pthread_mutex_lock(&counter_lock);
+  destination->writer_done = TRUE;
+  //pthread_mutex_unlock(&counter_lock);
+  pthread_mutex_unlock(&destination->lock);
 
   return ret;
 }

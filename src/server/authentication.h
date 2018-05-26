@@ -193,7 +193,7 @@ static user_t* new_user(user_db_t* db, char* password, int rights);
  * @param  username of the desired user
  * @return a pointer to the user info struct
  */
-static user_t* getUserByName(user_db_t* db, char* username);
+static user_t* get_user_by_name(user_db_t* db, char* username);
 
 /**
  * Creates a hash from the given password and salt. Uses the widely used legacy

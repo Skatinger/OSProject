@@ -1,4 +1,4 @@
-#include "../server/authentification.h"
+#include "../server/authentication.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>

@@ -13,9 +13,13 @@
 
 void ah_init_access_handler(pthread_key_t* USERNAME_key, char* root_pw);
 
+char* ah_get(char* key);
+
 char* ah_reader(char* key, int type);
 
 char* ah_writer(char* key, char* value, int action);
+
+char* ah_keys(char* value);
 
 char* ah_user_db_new(char *username, char* password);
 

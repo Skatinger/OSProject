@@ -6,7 +6,7 @@
 #include <openssl/err.h>
 #include <pthread.h>
 #include <string.h>
-#include "authentification.h"
+#include "authentication.h"
 
 
 
@@ -65,7 +65,7 @@ static uint8_t* createHash(char* password, uint8_t* salt, int iter) {
 }
 
 int u_check_credentials(user_db_t* db, char* username, char* password) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
   if (user != NULL) {
     uint8_t* hash = createHash(password, user->salt, user->iter);
     for (int k = 0; k < SHA_512_DIGEST_SIZE; k++) {
@@ -85,7 +85,7 @@ int u_check_credentials(user_db_t* db, char* username, char* password) {
   }
 }
 
-static user_t* getUserByName(user_db_t* db, char* username) {
+static user_t* get_user_by_name(user_db_t* db, char* username) {
   user_t* user;
   user = (user_t*) kvs_get(db->store, username);
   return user;
@@ -111,17 +111,21 @@ int u_add_user(user_db_t* db, char* username, char* password, int rights) {
 
 int u_delete_user(user_db_t* db, char* username) {
   void* rep = kvs_del(db->store, username);
-  if (rep != NULL) {
+  int logged_in = get_user_by_name(db, username)->logged_in;
+
+  if (rep != NULL && !logged_in) {
     db->count--;
-    return 0;
+    return SUCCESS;
+  } else if (logged_in) {
+    return ERROR_USER_LOGGEDIN;
   } else {
-    return 1;
+    return ERROR_GEN;
   }
 }
 
 int u_update_user(user_db_t* db, char* old_username, char* new_username, char* new_password) {
-  int rights = getUserByName(db, old_username)->rights;
-  int logged_in = getUserByName(db, old_username)->logged_in;
+  int rights = get_user_by_name(db, old_username)->rights;
+  int logged_in = get_user_by_name(db, old_username)->logged_in;
 
   if (logged_in) return ERROR_USER_LOGGEDIN;
 
@@ -135,7 +139,7 @@ int u_update_user(user_db_t* db, char* old_username, char* new_username, char* n
 
 
 int u_get_access(user_db_t* db, char* username) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
 
   pthread_t calling_thread = pthread_self();
   if (user == NULL || !user->logged_in || !pthread_equal(calling_thread, *user->current_thread)) {
@@ -146,7 +150,7 @@ int u_get_access(user_db_t* db, char* username) {
 }
 
 int u_get_logged_in(user_db_t* db, char* username) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
 
   pthread_t calling_thread = pthread_self();
   if (user == NULL) {
@@ -157,7 +161,7 @@ int u_get_logged_in(user_db_t* db, char* username) {
 }
 
 int u_set_access_rights(user_db_t* db, char* username, int rights) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
   if (user == NULL || rights < NONE || rights > ADMIN) {
     return 1;
   } else {
@@ -167,7 +171,7 @@ int u_set_access_rights(user_db_t* db, char* username, int rights) {
 }
 
 int u_set_access_logged_in(user_db_t* db, char* username, int logged_in) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
   pthread_t* calling_thread = malloc(sizeof(pthread_t));
   *calling_thread = pthread_self();
   if (user == NULL || logged_in < FALSE || logged_in > TRUE) {
@@ -201,7 +205,7 @@ void u_print_user(char* username, user_t* user) {
 }
 
 void u_print_user_jr(user_db_t* db, char* username) {
-  user_t* user = getUserByName(db, username);
+  user_t* user = get_user_by_name(db, username);
   if (user != NULL) u_print_user(username, user);
   else printf("User not found");
 }

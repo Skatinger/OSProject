@@ -1,6 +1,8 @@
 #ifndef KV3_HEADER_FILE
 #define KV3_HEADER_FILE
 
+#include <pthread.h>
+
 #define TRUE 1
 #define FALSE 0
 
@@ -37,6 +39,11 @@ typedef struct node {
     Kvp* table[SLOTS];   // the actual content
     int load;
     struct node* next; // the next such node in the linked list
+    pthread_mutex_t lock;
+    pthread_mutex_t counter_lock;
+    int reader_count;
+    int writer_waiting;
+    int writer_done;
 } Node;
 
 /**
@@ -116,6 +123,8 @@ int kvs_replace(KVS* store, char* key, void* value);
  */
 float kvs_avg_loadfactor(KVS *store);
 
+Node* kvs_find_node(KVS* kvs, char* key);
+
 /**
  * Incredibly inefficient way to retrieve the keys to a certain value, if the value is a string (char*).
  * The keys will be returned as a dash-separated list.
@@ -124,6 +133,78 @@ float kvs_avg_loadfactor(KVS *store);
  * @return the keys that have the given value
  */
 char* kvs_keys_for_string_value(KVS* kvs, char* value);
+
+/**
+ * This can be used to acquire the lock on a node in the kvs. The argument is the
+ * intended key, based on that, the correct node will be locked.
+ * @param kvs the kvs in which to lock a node
+ * @param key the key of what is about to be altered
+ */
+void kvs_lock_node(KVS* kvs, char* key);
+
+/**
+ * Analogous to kvs_lock_node, just that it unlocks it.
+ * @param kvs the kvs to lock in
+ * @param key of what is about to be altered
+ */
+void kvs_unlock_node(KVS* kvs, char* key);
+
+/**
+ * Returns the number of readers currently reading the node where key is stored
+ * @param  kvs the keyvalustore
+ * @param  key of what is about to be altered
+ * @return the number of readers
+ */
+int kvs_get_reader_count(KVS* kvs, char* key);
+
+/**
+ * boolean that indicates whether a writer is currently waiting and would
+ * like to write stuff. This is used so that this writer can then be treated
+ * with priority over readers.
+ * @param  kvs
+ * @param  key see above
+ * @return     TRUE if so, FALSE if not
+ */
+int kvs_get_writer_waiting(KVS* kvs, char* key);
+
+/**
+ * boolean that indicates if the writer who was given priority has now finished
+ * their actions. If so, access can be given back to readers.
+ * @param  kvs
+ * @param  key as usual
+ * @return TRUE if done, FALSE if not
+ */
+int kvs_get_writer_done(KVS* kvs, char* key);
+
+/**
+ * Sets the writer_waiting property, see also getter
+ * @param kvs
+ * @param key
+ * @param waiting TRUE if there is one waiting / FALSE if not
+ */
+void kvs_set_writer_waiting(KVS* kvs, char* key, int waiting);
+
+/**
+ * Sets the writer_done property, see also getter.
+ * @param kvs
+ * @param key
+ * @param done TREU if done, FALSE if not
+ */
+void kvs_set_writer_done(KVS* kvs, char* key, int done);
+
+/**
+ * Increments the reader count for the node on which key is stored.
+ * @param kvs
+ * @param key
+ */
+void kvs_inc_reader_count(KVS* kvs, char* key);
+
+/**
+ * Decrements the reader count for the node on which key is stored.
+ * @param kvs
+ * @param key
+ */
+void kvs_dec_reader_count(KVS* kvs, char* key);
 
 ///* =================================================================================================== */
 ///  DEBUG FUNCTIONS
