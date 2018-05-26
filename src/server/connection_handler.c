@@ -34,6 +34,7 @@ int main(int argc, char const *argv[]) {
 
   // new thread that waits for connections
   pthread_create(&pid, NULL, accept_new_connections, (void*)root_pw);
+  pthread_join(pid, NULL);
 
   // mechanism to stop the server
   c = getchar();

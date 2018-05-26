@@ -73,13 +73,11 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 1
+clientcount = 50
 put_length = 10
 # number of key-value pairs inserted
 N = 10
 
-serverstart = "os.system(echo " + root_password + " | gnome-terminal -- ./connectionH.sh)"
-rootstart = "os.system(echo " + root_password + " | gnome-terminal -- ./root.sh)"
 client_writer_start = "./client_writer.sh "
 client_reader_start = "./client_reader.sh "
 
@@ -95,11 +93,15 @@ def generate_root_client_file():
     # 2 * clientcount because first half is writers, second half is readers
     for i in range(clientcount * 2):
         f.write("addUser\n" + str(i) + "\n" + str(i) + "\n")
+    f.write("quit")
     f.close()
 
 
 # generates a input file for testing for each client
 def generate_client_files():
+    server_file = open("con.txt", "w+")
+    server_file.write("123")
+    server_file.close()
     for j in range(clientcount):
         h = j + clientcount
         # create package of writerX, readerX and expected_outputX for both
@@ -136,27 +138,30 @@ def generate_client_files():
 
 
 def init_base():
-    pserver = subprocess.Popen(serverstart, shell=True)
+    pserver = subprocess.Popen("./connectionH.sh")
+    time.sleep(0.1)
     list_of_processes.append(pserver)
-    proot = subprocess.Popen(rootstart, shell=True)
+    proot = subprocess.Popen("./root.sh")
     list_of_processes.append(proot)
 
 
 def init_tons_of_readers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_reader_start + str(i), shell=True)
+        p = subprocess.Popen(client_reader_start + str(i + clientcount), shell=True)
         list_of_processes.append(p)
 
 
 def init_tons_of_writers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_writer_start + str(i + clientcount), shell=True)
+        p = subprocess.Popen(client_writer_start + str(i), shell=True)
         list_of_processes.append(p)
 
 
 # primary scripts
 def test_put_get():
     init_base()
+    time.sleep(1)
+    print("waiting for base to init")
     init_tons_of_writers()
     init_tons_of_readers()
     validate()
@@ -174,6 +179,7 @@ def validate():
 
 
 def validate_writers():
+    print("opening writer_exit.txt")
     if 'failed' in open("writer_exit.txt").read():
         return False
     return True
@@ -186,7 +192,7 @@ def validate_readers():
 
 
 def cleanup():
-    # kill all processes
+    # kill all possibly still running processes
     for process in list_of_processes:
         os.kill(process.pid, signal.SIGKILL)
     # remove temporary txt files
@@ -197,8 +203,15 @@ def cleanup():
 generate_client_files()
 generate_root_client_file()
 
+#start server and create users
+init_base()
+
 # start tests
-test_put_get()
+#test_put_get()
+
+
+#wait for all testing to finish
+time.sleep(clientcount / 4)
 
 # clean up files
 cleanup()

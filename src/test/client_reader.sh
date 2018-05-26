@@ -1,5 +1,9 @@
 #!/bin/bash
 
+cd ..
+cd ..
+
+
 #opens program, enters input file, outputs to output file,
 #checks for differences between output and expected output, then quits
 
@@ -13,14 +17,14 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-bin="./../../build/ui 127.0.0.1" #program to be executed by reader
+bin="./build/ui 127.0.0.1" #program to be executed by reader
 diff="diff -ad"   # Diff command, to check difference in output vs expected
 
 
 #declare files
-file_in=$"input_reader$1.txt"
-file_out_val="output_reader$1.txt"
-file_out_expected="expected_output_reader$1.txt"
+file_in=$"src/test/input_reader$1.txt"
+file_out_val="src/test/output_reader$1.txt"
+file_out_expected="src/test/expected_output_reader$1.txt"
 
 #ensure it works, remove later
 echo my working files are:
@@ -41,7 +45,7 @@ fi
 #create outputfile
 if [ ! -f "$file_out_val" ]; then
     printf "creating output file %s\n" "$file_out_val"
-    touch output_writer$1.txt
+    touch src/test/output_writer$1.txt
 fi
 
 printf "Testing %s against %s\n" "$file_out_val" "$file_out_expected"
@@ -59,11 +63,12 @@ $diff "$file_out_expected" "$file_out_val"
 e_code=$?
 if [ $e_code != 0 ]; then
         printf "TEST FAIL : %d\n" "$e_code"
-        touch reader_exit.txt
-        echo failed with: $e_code >> reader_exit.txt
+        touch src/test/reader_exit.txt
+        echo failed with: $e_code >> src/test/reader_exit.txt
 else
         printf "TEST OK!\n return 0\n"
-        echo success >> reader_exit.txt
+        touch src/test/reader_exit.txt
+        echo success >> src/test/reader_exit.txt
 fi
 
 # Clean exit
