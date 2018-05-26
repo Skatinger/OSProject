@@ -25,7 +25,7 @@ Should you encounter `Unable to bind socket: Address already in use`, make sure 
 In order to run the client implementation, cd to the project folder and run `./build/ui <ip-addr>`. This will try to set up a connection to a server with ip the given IP address. If you are running the server locally, just enter `./build/ui`. The interace will guide you through the application.
 
 ## Running the test script
-Go to the /src/test folder and run `./testing.py`
+Go to the /src/test folder and run `./testing.py`. This may not work on non-linux machines.
 
 ## Exiting
 The server has to be stopped with ctrl + C. The client, on the other hand, will exit using the `quit` command.
