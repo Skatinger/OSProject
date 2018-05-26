@@ -237,7 +237,7 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * update \n \t * delete\n * preimage \t * logout\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * update \n \t * delete\n \t * preimage\n \t * logout\n \t * quit\n\n");
   printf("If you have admin rights, you can also do the following:\n");
   printf("\t * addUser\n \t * makeAdmin\n \t * updateUser\n\n");
   printf("You will be guided through the funcionality.\n");

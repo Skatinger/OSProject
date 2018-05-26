@@ -5,7 +5,7 @@ import signal
 import string
 import time
 import subprocess
-from typing import List, Any
+
 
 ####### input for test files ############
 output_client_login = """
@@ -73,7 +73,7 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 5
+clientcount = 1
 put_length = 10
 # number of key-value pairs inserted
 N = 10
@@ -147,13 +147,15 @@ def init_base():
 
 def init_tons_of_readers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_reader_start + str(i + clientcount), shell=True)
+        start = client_reader_start + str(i + clientcount)
+        p = subprocess.Popen(start, shell=True)
         list_of_processes.append(p.pid)
 
 
 def init_tons_of_writers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_writer_start + str(i), shell=True)
+        start = client_writer_start + str(i)
+        p = subprocess.Popen(start, shell=True)
         list_of_processes.append(p.pid)
 
 
@@ -196,12 +198,13 @@ def cleanup():
     for i in list_of_processes:
         os.kill(i, signal.SIGINT)
     # remove temporary txt files
-    os.system("rm *.txt")
+    #os.system("rm *.txt")
     #kills all leftovers of connectionH
     os.system("kill $(ps aux | grep '[c]onnectionH' | awk '{print $2}')")
 
 
-# generate needed files
+# generate needed files and compile
+os.system("./compile.sh")
 generate_client_files()
 generate_root_client_file()
 
@@ -210,11 +213,13 @@ init_base()
 
 # start tests
 #test_put_get()
-
+#init_tons_of_readers()
+init_tons_of_writers()
 
 #wait for all testing to finish
 time.sleep(clientcount / 4)
 for process in list_of_processes:
     print(process)
 # clean up files
+#time.sleep(20)
 cleanup()

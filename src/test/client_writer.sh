@@ -16,7 +16,7 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-bin="./build/ui 127.0.0.1" #program to be executed by writer
+bin="build/ui 127.0.0.1" #program to be executed by writer
 diff="diff -ad"   # Diff command, to check difference in output vs expected
 
 
@@ -31,7 +31,8 @@ echo input: $file_in
 echo output: $file_out_val
 echo expected output: $file_out_expected
 echo
-
+echo my pwd is: $PWD
+echo my bin is: $bin
 
 # Validate infile exists (do the same for out validate file)
 if [ ! -f "$file_in" ]; then
@@ -50,8 +51,8 @@ fi
 printf "Testing %s against %s\n" "$file_out_val" "$file_out_expected"
 
 # Run application, redirect in file to app, and output to out file
-echo $PWD
-"$bin" < "$file_in" > "$file_out_val"
+echo trying to execute ./$bin
+./build/ui 127.0.0.1 < "$file_in" > "$file_out_val"
 
 # Execute diff
 $diff "$file_out_expected" "$file_out_val"

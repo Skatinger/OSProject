@@ -17,7 +17,7 @@ if [ $# -lt 1 ]; then
     exit 1
 fi
 
-bin="./build/ui 127.0.0.1" #program to be executed by reader
+bin="build/ui 127.0.0.1" #program to be executed by reader
 diff="diff -ad"   # Diff command, to check difference in output vs expected
 
 
@@ -51,7 +51,7 @@ fi
 printf "Testing %s against %s\n" "$file_out_val" "$file_out_expected"
 
 # Run application, redirect in file to app, and output to out file
-"$bin" < "$file_in" > "$file_out_val"
+./build/ui 127.0.0.1 < "$file_in" > "$file_out_val"
 
 # Execute diff
 $diff "$file_out_expected" "$file_out_val"
