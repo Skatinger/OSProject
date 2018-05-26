@@ -60,9 +60,10 @@ e_code=$?
 if [ $e_code != 0 ]; then
         printf "TEST FAIL : %d\n" "$e_code"
         touch reader_exit.txt
-        echo failed with: $e_code >> exit.txt
+        echo failed with: $e_code >> reader_exit.txt
 else
         printf "TEST OK!\n return 0\n"
+        echo success >> reader_exit.txt
 fi
 
 # Clean exit

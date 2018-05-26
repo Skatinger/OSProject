@@ -198,7 +198,7 @@ generate_client_files()
 generate_root_client_file()
 
 # start tests
-# test_put_get()
+test_put_get()
 
 # clean up files
 cleanup()
