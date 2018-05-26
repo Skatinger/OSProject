@@ -39,7 +39,7 @@ int main(int argc, char const *argv[]) {
 
   // and login
   logger("Asking user to login", INFO);
-  ah_login();
+  login();
 
   // now entering "main loop", where the cmdline waits for user input
   // and processes it with the corresponding functions.
@@ -76,17 +76,17 @@ int main(int argc, char const *argv[]) {
 	  }
 
     else if (!strcmp(input, "addUser")) {
-      u_add_user();
+      add_user();
       continue;
     }
 
     else if(!strcmp(input, "deleteUser")) {
-      u_delete_user();
+      delete_user();
       continue;
     }
 
     else if (!strcmp(input, "updateUser")) {
-      u_update_user();
+      update_user();
       continue;
     }
 
@@ -101,7 +101,7 @@ int main(int argc, char const *argv[]) {
     }
 
     else if (!strcmp(input, "logout")) {
-      ah_logout();
+      logout();
       continue;
     }
 
@@ -236,7 +236,7 @@ static void quit() {
 
 static void help() {
   printf("Usage: Type one of the following commands based on you want to do:\n");
-  printf("\t * get\n \t * put \n \t * update \n \t * delete\n * preimage \t * logout\n \t * quit\n\n");
+  printf("\t * get\n \t * put \n \t * update \n \t * delete\n \t * preimage\n \t * logout\n \t * quit\n\n");
   printf("If you have admin rights, you can also do the following:\n");
   printf("\t * addUser\n \t * makeAdmin\n \t * updateUser\n\n");
   printf("You will be guided through the funcionality.\n");
@@ -265,7 +265,7 @@ static void put() {
   }
 }
 
-static void ah_login() {
+static void login() {
   char password[USER_BUF];
   printf("Please provide your username:\n");
   scanf("%s", username);
@@ -282,14 +282,14 @@ static void ah_login() {
     return;
   } else if (!strcmp(buffer, ERROR_ALREADY_LOGGEDIN(username))) {
     print_error_message();
-    //ah_login();
+    //login();
   } else {
     printf(RED_TXT("Nope, that wasn't it. Try again.\n"));
-    //ah_login();
+    //login();
   }
 }
 
-static void u_add_user() {
+static void add_user() {
   char username[USER_BUF];
   char password[USER_BUF];
   char c;
@@ -312,7 +312,7 @@ static void u_add_user() {
   }
 }
 
-static void u_delete_user() {
+static void delete_user() {
   char username[USER_BUF];
   char c;
 
@@ -328,7 +328,7 @@ static void u_delete_user() {
     printf("Congrats, you deleted User %s\n", username);
   } else {
     print_error_message();
-    //logger("u_delete_user(): after error", INFO);
+    //logger("delete_user(): after error", INFO);
   }
 }
 
@@ -352,7 +352,7 @@ static void make_admin() {
   }
 }
 
-static void u_update_user() {
+static void update_user() {
   char old_username[USER_BUF];
   char new_username[USER_BUF];
   char new_password[USER_BUF];
@@ -379,13 +379,13 @@ static void u_update_user() {
 }
 
 
-static void ah_logout() {
+static void logout() {
   printf("Logging you out\n");
   logger("User logging out\n", INFO);
   c_send_TLS(LOGOUT(username));
   c_receive_TLS(buffer);
   printf("You may now login with a different account\n");
-  ah_login();
+  login();
 }
 
 static int get_response_nr() {

@@ -5,7 +5,6 @@ import signal
 import string
 import time
 import subprocess
-#from typing import List, Any
 
 ####### input for test files ############
 output_client_login = """
@@ -73,7 +72,9 @@ The corresponding value is:
 #####################################
 
 root_password = "123"
-clientcount = 50
+# number of testing clients
+clientcount = 5
+# length of keys and values inserted into key-value store
 put_length = 10
 # number of key-value pairs inserted
 N = 10
@@ -140,31 +141,33 @@ def generate_client_files():
 def init_base():
     pserver = subprocess.Popen("./connectionH.sh")
     time.sleep(0.1)
-    list_of_processes.append(pserver)
+    list_of_processes.append(pserver.pid)
     proot = subprocess.Popen("./root.sh")
-    list_of_processes.append(proot)
+    list_of_processes.append(proot.pid)
 
 
 def init_tons_of_readers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_reader_start + str(i + clientcount), shell=True)
-        list_of_processes.append(p)
+        start = client_reader_start + str(i + clientcount)
+        p = subprocess.Popen(start, shell=True)
+        list_of_processes.append(p.pid)
 
 
 def init_tons_of_writers():
     for i in range(clientcount):
-        p = subprocess.Popen(client_writer_start + str(i), shell=True)
-        list_of_processes.append(p)
+        start = client_writer_start + str(i)
+        p = subprocess.Popen(start, shell=True)
+        list_of_processes.append(p.pid)
 
 
 # primary scripts
 def test_put_get():
     init_base()
-    time.sleep(1)
     print("waiting for base to init")
+    time.sleep(2)
     init_tons_of_writers()
     init_tons_of_readers()
-    validate()
+    #validate()
 
 
 def validate():
@@ -193,24 +196,26 @@ def validate_readers():
 
 def cleanup():
     # kill all possibly still running processes
+    print("closing the following proccesses:")
     for process in list_of_processes:
-        os.kill(process.pid, signal.SIGKILL)
+        print(process)
+    for i in list_of_processes:
+        os.kill(i, signal.SIGINT)
     # remove temporary txt files
     os.system("rm *.txt")
+    # kills all leftovers of connectionH
+    os.system("kill $(ps aux | grep '[c]onnectionH' | awk '{print $2}')")
 
 
-# generate needed files
+# generate needed files and compile
+os.system("./compile.sh")
 generate_client_files()
 generate_root_client_file()
 
-#start server and create users
-init_base()
+# start server, add users, init clients and validate their output
+test_put_get()
 
-# start tests
-#test_put_get()
-
-
-#wait for all testing to finish
+# wait for all testing to finish
 time.sleep(clientcount / 4)
 
 # clean up files

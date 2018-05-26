@@ -8,7 +8,7 @@
  * Hadles a login request by the user.
  * (I.e. sends the server a corresponding )
  */
-static void ah_login(void);
+static void login(void);
 
 /**
  * This handles a get request by the user.
@@ -48,15 +48,15 @@ static void get_spam();
 /**
  * This handles an add user request by the user.
  */
-static void u_add_user();
+static void add_user();
 
 /**
  * This allows the user to get the keys for a certain values, it they so dare.
  */
 static void preimage();
 
-static void u_delete_user();
-static void u_update_user();
+static void delete_user();
+static void update_user();
 static void make_admin();
 
 /**
@@ -68,7 +68,7 @@ static void update();
  * This handles a logout request by the user. i.e. this user is logged out
  * and a login propmpt is openend.
  */
-static void ah_logout();
+static void logout();
 
 /**
  * This reads the message the server has sent and reads the code of it,
